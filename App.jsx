@@ -22,26 +22,34 @@ import {
 import Login from './src/components/Login';
 import Scanner from './src/components/Scanner';
 import Home from './src/components/Home';
-import { NotesChatRealmContext } from './src/Models.js';
 import Loader from './src/components/common/Loader';
 import ErrorDialog from './src/components/common/ErrorDialog';
+import { useQuery } from '@realm/react';
+import { UserProfile } from './src/Models.js/UserProfile';
 
 
 const Stack = createNativeStackNavigator();
 
+function AppHeader() {
+
+  return (
+    <View style={{ width: '100%', height: '100%', backgroundColor: 'red' }}>
+      <Text>Hi, Harsha</Text>
+    </View>
+  )
+}
+
 
 function App() {
-  const { RealmProvider } = NotesChatRealmContext;
+  const userProfile = useQuery(UserProfile);
   return (
     <NavigationContainer>
-      <RealmProvider>
-        <Loader />
-        <ErrorDialog />
-        <Stack.Navigator>
-          <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
-          <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
-        </Stack.Navigator>
-      </RealmProvider>
+      <Loader />
+      <ErrorDialog />
+      <Stack.Navigator>
+        {!userProfile[0]?._id && <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />}
+        <Stack.Screen name="Home" component={Home} options={{ headerBackVisible: false, headerTitle: (props) => (<AppHeader {...props} />), }} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }

@@ -5,12 +5,12 @@ import DocumentPicker, { types } from 'react-native-document-picker'
 import { useState } from "react";
 import CameraViewer from "./CameraView.jsx";
 import Video from 'react-native-video';
+import { useQuery, useRealm } from "@realm/react";
 const { View, Image, PermissionsAndroid } = require("react-native")
 const { Text, Button } = require("react-native-paper")
 
 
 const Home = () => {
-    const { useQuery, useRealm } = NotesChatRealmContext;
     const navigation = useNavigation();
 
     const userProfile = useQuery(UserProfile)

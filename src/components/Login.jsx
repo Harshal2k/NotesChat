@@ -15,8 +15,8 @@ import HelperInput from "./common/HelperInput";
 import { validateEmail } from "../Helpers/Validations";
 import Loader from "./common/Loader";
 import { showLoader } from "../Redux/Actions";
+import { useQuery, useRealm } from "@realm/react";
 
-const { useRealm, useQuery } = NotesChatRealmContext;
 const Login = () => {
     const [userData, setUserData] = useState({ name: '', email: '', password: '', phone: '', otp: '' });
     const [helperTxt, setHelperTxt] = useState({ name: '', email: '', password: '', phone: '' })

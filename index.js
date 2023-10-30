@@ -8,6 +8,9 @@ import { name as appName } from './app.json';
 import { MD3LightTheme as DefaultTheme, PaperProvider } from 'react-native-paper';
 import { Provider as StoreProvider } from 'react-redux';
 import { store } from './src/Redux/store';
+import { RealmProvider } from '@realm/react';
+import { UserProfile } from './src/Models.js/UserProfile';
+import { NotesChatRealmContext } from './src/Models.js';
 
 
 const theme = {
@@ -20,10 +23,13 @@ const theme = {
 };
 
 export default function Main() {
+  // const { RealmProvider } = useRealmC;
   return (
     <StoreProvider store={store}>
       <PaperProvider theme={theme}>
-        <App />
+        <RealmProvider {...NotesChatRealmContext}>
+          <App />
+        </RealmProvider>
       </PaperProvider>
     </StoreProvider>
   );

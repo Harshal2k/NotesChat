@@ -2,11 +2,11 @@ import axios from 'axios';
 import { hideLoader, showLoader } from './Redux/Actions';
 
 export const Api = axios.create({
-    baseURL: 'http://192.168.137.179:4000',
+    baseURL: 'http://192.168.10.15:4000',
 });
 
 export const Api1 = axios.create({
-    baseURL: 'http://192.168.137.179:4000',
+    baseURL: 'http://192.168.10.15:4000',
 }); +
 
 
