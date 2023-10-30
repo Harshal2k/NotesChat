@@ -1,0 +1,5 @@
+export const SET_LOADING = "set_loading"
+export const UNSET_LOADING = "unset_loading"
+export const SET_USER_DETAILS = "set_user_details"
+export const SHOW_ERROR = "show_error"
+export const HIDE_ERROR = "hide_error"
