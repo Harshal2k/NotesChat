@@ -31,6 +31,15 @@ const Login = () => {
     const realm = useRealm();
     const userProfile = useQuery(UserProfile)
 
+    useEffect(() => {
+        if (navigation.canGoBack()) {
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            });
+        }
+    }, [])
+
 
     useEffect(() => {
         console.log({ userProfile2: userProfile[0] });

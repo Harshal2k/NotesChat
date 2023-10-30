@@ -1,8 +1,8 @@
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useNavigationState } from "@react-navigation/native";
 import { NotesChatRealmContext } from "../Models.js"
 import { UserProfile } from "../Models.js/UserProfile";
 import DocumentPicker, { types } from 'react-native-document-picker'
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CameraViewer from "./CameraView.jsx";
 import Video from 'react-native-video';
 import { useQuery, useRealm } from "@realm/react";
@@ -12,6 +12,7 @@ const { Text, Button } = require("react-native-paper")
 
 const Home = () => {
     const navigation = useNavigation();
+    const navigations = useNavigationState(state => state.routes);
 
     const userProfile = useQuery(UserProfile)
     const realm = useRealm()
@@ -19,6 +20,17 @@ const Home = () => {
     const [result, setResult] = useState([]);
     const [count, setCount] = useState(0);
     const [camMode, setCamMode] = useState(false);
+
+    useEffect(() => {
+        console.log({ navigations })
+        let loginNav = navigations?.filter(nav => nav?.name === "Login");
+        if (loginNav?.length > 0) {
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+            });
+        }
+    }, [])
 
     const hLogout = () => {
         realm.write(() => {
@@ -109,7 +121,7 @@ const Home = () => {
                         <Button mode="contained" onPress={setCamMode}>Click</Button>
                         <Button mode="contained" disabled={result?.length == 0 || result?.length == (count + 1)} onPress={hNext}>NEXT</Button>
                     </View>
-                    <Button mode="contained" style={{marginTop:50}} onPress={getContacts}>Get Contacts</Button>
+                    <Button mode="contained" style={{ marginTop: 50 }} onPress={getContacts}>Get Contacts</Button>
                 </View>
             }
         </>
