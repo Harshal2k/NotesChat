@@ -19,6 +19,7 @@ const theme = {
     ...DefaultTheme.colors,
     primary: '#FF6D60',
     secondary: '#F7D060',
+    backdrop: '#000420e8'
   },
 };
 

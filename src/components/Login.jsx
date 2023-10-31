@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Image, Keyboard, StyleSheet, View } from "react-native";
-import { Button, Dialog, HelperText, Portal, Text, TextInput } from "react-native-paper";
+import { Image, Keyboard, StyleSheet, TouchableHighlight, View } from "react-native";
+import { Button, Dialog, HelperText, Icon, Portal, Text, TextInput } from "react-native-paper";
 import colors from "../styles/Colours";
 import { Camera, useCameraDevice, useCameraPermission } from "react-native-vision-camera";
 import CameraViewer from "./CameraView";
@@ -14,9 +14,13 @@ import OTPTextView from "react-native-otp-textinput";
 import HelperInput from "./common/HelperInput";
 import { validateEmail } from "../Helpers/Validations";
 import Loader from "./common/Loader";
-import { showError, showLoader } from "../Redux/Actions";
+import { hideLoader, showError, showLoader } from "../Redux/Actions";
 import { useQuery, useRealm } from "@realm/react";
 import { useDispatch } from "react-redux";
+import ImageUploadDialog from "./Dialogs/ImageUploadDialog";
+import DocumentPicker, { types } from 'react-native-document-picker'
+import ImageCropPicker from "react-native-image-crop-picker";
+import axios from "axios";
 
 const Login = () => {
     const [userData, setUserData] = useState({ name: '', email: '', password: '', phone: '', otp: '' });
@@ -24,6 +28,7 @@ const Login = () => {
     const [showPass, setShowPass] = useState(true);
     const [loginMode, setLoginMode] = useState(true);
     const [otpMode, setOtpMode] = useState(false);
+    const [imageMode, setImageMode] = useState(false);
     const [cameraMode, setCameraMode] = useState(false);
     const [imageSource, setImageSource] = useState('');
     const dispatch = useDispatch();
@@ -209,7 +214,6 @@ const Login = () => {
         if (!commonValidation()) {
             return;
         }
-        setOtpMode(true);
         Api.post("/api/user/sendOtp",
             {
                 email: userData.email
@@ -225,13 +229,43 @@ const Login = () => {
         })
     }
 
-    const hSignIn = () => {
+    const hSignIn = async () => {
+
+        let imgName = `${userData.name}+${userData.email}+${userData.phone}+${userData.otp}+${userData.password}+${String(Date.now())}`;
+        console.log({ imgName });
+        // let hashedName = createHash('sha256').update(imgName).digest('hex');
+        // console.log({ hashedName });
+        let imageUrl = '';
+        if (imageSource) {
+            showLoader();
+            try {
+                const timestamp = Date.now();
+                let data = new FormData();
+                data.append('file', {
+                    name: `my_image_${timestamp}.jpg`,
+                    type: 'image/jpeg',
+                    uri: imageSource,
+                });
+                data.append('upload_preset', 'NotesChat');
+                data.append('api_key', '38918525699347');
+                data.append('timestamp', timestamp);
+                let imgUpload = await axios.post('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', data);
+                console.log(imgUpload.data);
+                imageUrl = imgUpload.data.url;
+            } catch (error) {
+                console.log({ error })
+                hideLoader();
+                dispatch(showError("Profile picture upload failed"));
+                setImageSource("");
+            }
+        }
         Api.post('/api/user/register', {
             name: userData.name,
             email: userData.email,
             phone: userData.phone,
             otp: userData.otp,
-            password: userData.password
+            password: userData.password,
+            pic: imageUrl
         }).then(({ data }) => {
             realm.write(() => {
                 realm.create('UserProfile', {
@@ -250,6 +284,7 @@ const Login = () => {
                 dispatch(showError("Something went wrong!"));
             }
         });
+
         return;
         if (imageSource) {
             const imageUri = `file://${imageSource}`;
@@ -278,11 +313,37 @@ const Login = () => {
         }
     }
 
+    const hGallery = async () => {
+        try {
+            const pickerResult = await DocumentPicker.pickSingle({
+                type: [types.images],
+                presentationStyle: 'fullScreen',
+            });
+            console.log({ pickerResult });
+            ImageCropPicker.openCropper({
+                path: `${pickerResult.uri}`,
+                width: 400,
+                height: 400,
+                compressImageQuality: 0.7,
+                cropperCircleOverlay: true,
+            }).then(image => {
+                console.log(image);
+                setImageSource(image.path);
+                setImageMode(false);
+            }).catch((error) => {
+                console.log({ error });
+            });
+        } catch (e) {
+            console.log({ e })
+        }
+    }
+
     return (
         <>
+            <ImageUploadDialog show={imageMode} hCamera={() => { setCameraMode(true); setImageMode(false) }} hGallery={hGallery} />
             {
                 cameraMode ?
-                    <CameraViewer setCameraMode={setCameraMode} setImageSource={setImageSource}></CameraViewer>
+                    <CameraViewer setCameraMode={() => { setImageMode(false); setCameraMode(false) }} setImageSource={setImageSource}></CameraViewer >
                     :
                     <View style={styles.mainContainer}>
                         {loginMode ?
@@ -306,10 +367,12 @@ const Login = () => {
                             !otpMode ?
                                 <View style={styles.fieldContainers}>
                                     <View style={styles.imageContainer}>
-                                        <Image style={styles.avatar} source={imageSource ? { uri: `file://${imageSource}` } : require("../Images/default_avatar.jpg")}></Image>
+                                        <Image style={styles.avatar} source={imageSource ? { uri: imageSource } : require("../Images/default_avatar.jpg")}></Image>
+                                        <TouchableHighlight underlayColor={"#0000002e"} style={styles.addProfileBtn} onPress={() => setImageMode(!imageMode)}>
+                                            <Icon source={"camera-plus"} size={20} color="white" />
+                                        </TouchableHighlight>
                                     </View>
                                     <HelperInput style={styles.inputStyle} mode="outlined" label={"Username"} helperText={helperTxt.name} value={userData?.name || ''} onChangeText={(text) => { hChange("name", text) }} />
-                                    <Button mode="elevated" onPress={() => setCameraMode(!cameraMode)}>Avatar</Button>
                                     <HelperInput style={styles.inputStyle} mode="outlined" label={"Phone Number"} helperText={helperTxt.phone} value={userData?.phone || ''} keyboardType="numeric" onChangeText={(text) => { hChange("phone", text) }} />
                                     <HelperInput style={styles.inputStyle} mode="outlined" label={"Email"} helperText={helperTxt.email} value={userData?.email || ''} onChangeText={(text) => { hChange("email", text) }} />
                                     <HelperInput style={styles.inputStyle} mode="outlined" label={"Password"} helperText={helperTxt.password} value={userData?.password || ''} onChangeText={(text) => { hChange("password", text) }} secureTextEntry={showPass} right={<TextInput.Icon onPress={() => setShowPass(!showPass)} icon="eye" />} />
@@ -388,7 +451,7 @@ const styles = StyleSheet.create({
         width: '100%'
     },
     imageContainer: {
-        backgroundColor: 'red',
+        backgroundColor: 'white',
         borderRadius: 100,
         borderColor: 'white',
         borderWidth: 10,
@@ -405,6 +468,17 @@ const styles = StyleSheet.create({
         marginRight: -5,
         marginTop: 5,
         width: '100%'
+    },
+    addProfileBtn: {
+        backgroundColor: colors.black,
+        width: 35,
+        height: 35,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 100,
+        position: 'absolute',
+        bottom: 0,
+        right: 0
     },
     avatar: {
         width: 100,
