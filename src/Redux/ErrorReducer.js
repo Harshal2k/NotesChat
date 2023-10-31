@@ -1,7 +1,7 @@
 import { HIDE_ERROR, SHOW_ERROR } from "./constants";
 
 let defaultvalue = {
-    show: true,
+    show: false,
     error: 'Somethin went wrong!'
 }
 
@@ -13,10 +13,7 @@ export const ErrorReducer = (state = defaultvalue, action) => {
                 error: action.data || 'Somethin went wrong!'
             }
         case HIDE_ERROR:
-            return {
-                show: false,
-                error: 'Somethin went wrong!'
-            }
+            return { ...state, show: false }
         default:
             return state;
     }

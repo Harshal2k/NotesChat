@@ -17,9 +17,9 @@ export function hideLoader() {
 }
 
 export function showError(errorTxt) {
-    return dispatch({ type: SHOW_ERROR, data: errorTxt })
+    return { type: SHOW_ERROR, data: errorTxt };
 }
 
 export function hideError() {
-    return dispatch({ type: HIDE_ERROR })
+    return { type: HIDE_ERROR, data: '' };
 }

@@ -42,10 +42,8 @@ Api.interceptors.response.use(
         return config
     },
     (error) => {
-        console.log({ error });
         hideLoader();
-        let message = error?.response?.data?.message || error?.message || 'Something went wrong'
-        return Promise.reject(error?.response?.data);
+        return Promise.reject(error?.response?.data || error);
     }
 );
 
@@ -54,8 +52,6 @@ Api1.interceptors.response.use(
         return config;
     },
     (error) => {
-        console.log({ error });
-        let message = error?.response?.data?.message || error?.message || 'Something went wrong';
         return Promise.reject(error?.response?.data || error);
     }
 );

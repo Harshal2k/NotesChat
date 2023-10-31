@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Image, Keyboard, StyleSheet, View } from "react-native";
 import { Button, Dialog, HelperText, Portal, Text, TextInput } from "react-native-paper";
 import colors from "../styles/Colours";
 import { Camera, useCameraDevice, useCameraPermission } from "react-native-vision-camera";
@@ -14,8 +14,9 @@ import OTPTextView from "react-native-otp-textinput";
 import HelperInput from "./common/HelperInput";
 import { validateEmail } from "../Helpers/Validations";
 import Loader from "./common/Loader";
-import { showLoader } from "../Redux/Actions";
+import { showError, showLoader } from "../Redux/Actions";
 import { useQuery, useRealm } from "@realm/react";
+import { useDispatch } from "react-redux";
 
 const Login = () => {
     const [userData, setUserData] = useState({ name: '', email: '', password: '', phone: '', otp: '' });
@@ -25,6 +26,7 @@ const Login = () => {
     const [otpMode, setOtpMode] = useState(false);
     const [cameraMode, setCameraMode] = useState(false);
     const [imageSource, setImageSource] = useState('');
+    const dispatch = useDispatch();
     let otpInput = useRef(null);
 
     const navigation = useNavigation();
@@ -142,6 +144,7 @@ const Login = () => {
     }
 
     const hLogin = () => {
+        Keyboard.dismiss();
         if (!commonValidation()) {
             return;
         }
@@ -160,12 +163,17 @@ const Login = () => {
                     token: data?.token || '',
                 });
             })
-        }).catch((errors) => {
-            console.log({ errors })
+        }).catch((error) => {
+            if (error?.message) {
+                dispatch(showError(error?.message));
+            } else {
+                dispatch(showError("Something went wrong!"));
+            }
         });
     }
 
     const hSendOtp = () => {
+        Keyboard.dismiss();
         if (userData?.name?.length === 0) {
             setHelperTxt((prev) => {
                 return {
@@ -201,16 +209,47 @@ const Login = () => {
         if (!commonValidation()) {
             return;
         }
+        setOtpMode(true);
         Api.post("/api/user/sendOtp",
             {
                 email: userData.email
             }
         ).then(() => {
             setOtpMode(true);
-        }).catch((error) => { console.log({ error }) })
+        }).catch((error) => {
+            if (error?.message) {
+                dispatch(showError(error?.message));
+            } else {
+                dispatch(showError("Something went wrong!"));
+            }
+        })
     }
 
     const hSignIn = () => {
+        Api.post('/api/user/register', {
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            otp: userData.otp,
+            password: userData.password
+        }).then(({ data }) => {
+            realm.write(() => {
+                realm.create('UserProfile', {
+                    _id: data?.user?._id || '',
+                    name: data?.user?.name || '',
+                    email: data?.user?.email || '',
+                    pic: data?.user?.pic || '',
+                    phone: data?.user?.phone || '',
+                    token: data?.token || '',
+                });
+            })
+        }).catch((error) => {
+            if (error?.message) {
+                dispatch(showError(error?.message));
+            } else {
+                dispatch(showError("Something went wrong!"));
+            }
+        });
         return;
         if (imageSource) {
             const imageUri = `file://${imageSource}`;
@@ -289,7 +328,7 @@ const Login = () => {
                                 <View style={styles.fieldContainers}>
                                     <View style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                         <Text style={{ fontSize: 15, marginBottom: 5, fontWeight: 'bold' }}>Enter 4 digit OTP sent to your Email</Text>
-                                        <Text style={{ backgroundColor: '#ff6d608f', fontWeight: 'bold', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 }}>{userData.email || 'harshalgosawi@gmail.com'}</Text>
+                                        <Text style={{ backgroundColor: '#ff6d608f', fontWeight: 'bold', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 }}>{userData.email || ''}</Text>
                                     </View>
                                     <OTPTextView
                                         ref={otpInput}
@@ -299,7 +338,7 @@ const Login = () => {
                                     <Button style={styles.btnStyle} textColor={colors.secondary} rippleColor={colors.primary} mode="elevated" onPress={hSignIn}>SIGN IN</Button>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
                                         <Button mode="text" onPress={() => setOtpMode(false)}>Back</Button>
-                                        <Button mode="text" onPress={() => setOtpMode(false)}>Resend OTP</Button>
+                                        <Button mode="text" onPress={() => hSendOtp()}>Resend OTP</Button>
                                     </View>
                                 </View>
                         }
