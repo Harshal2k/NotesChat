@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 import CameraViewer from "./CameraView.jsx";
 import Video from 'react-native-video';
 import { useQuery, useRealm } from "@realm/react";
+import RNFetchBlob from "rn-fetch-blob";
 const { View, Image, PermissionsAndroid } = require("react-native")
 const { Text, Button } = require("react-native-paper")
+const RNFS = require('react-native-fs');
 
 
 const Home = () => {
@@ -20,9 +22,20 @@ const Home = () => {
     const [result, setResult] = useState([]);
     const [count, setCount] = useState(0);
     const [camMode, setCamMode] = useState(false);
+    // const dirs = RNFetchBlob.fs.dirs
+    // console.log(dirs.DocumentDir)
+    // console.log(dirs.LibraryDir)
+    // console.log(dirs.DCIMDir)
+    // console.log(dirs.DownloadDir)
+    // console.log(dirs.MainBundleDir)
+    // console.log(dirs.D)
+    // RNFetchBlob.fs.ls(`${dirs.MainBundleDir}/cache/react-native-image-crop-picker`)
+    // // files will an array contains filenames
+    // .then((files) => {
+    //     console.log(files)
+    // })
 
     useEffect(() => {
-        console.log({ navigations })
         let loginNav = navigations?.filter(nav => nav?.name === "Login");
         if (loginNav?.length > 0) {
             navigation.reset({
@@ -72,8 +85,6 @@ const Home = () => {
                 console.error('Permission error: ', error);
             });
     }
-
-    console.log({ result });
 
     return (
         <>

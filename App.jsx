@@ -39,6 +39,7 @@ function AppHeader() {
   const [showLogout, setShowLogout] = useState(false);
 
   const hLogout = () => {
+    console.log({ userProfile })
     realm.write(() => {
       realm.delete(userProfile)
       navigation.navigate("Login");
@@ -48,7 +49,7 @@ function AppHeader() {
   return (
     <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
       <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Noteschat</Text>
-      <TouchableHighlight underlayColor={"#ff445a24"} onPress={setShowLogout} style={{ marginRight: 40, padding: 7,borderRadius:100 }}>
+      <TouchableHighlight underlayColor={"#ff445a24"} onPress={setShowLogout} style={{ marginRight: 40, padding: 7, borderRadius: 100 }}>
         <Icon source={"power"} color="#FF445A" size={30} />
       </TouchableHighlight>
       <ActionDialog show={showLogout} icon={"power"} title='Logout?' desc='Are you sure you want to logout?' onYes={hLogout} onNo={setShowLogout} />

@@ -21,6 +21,8 @@ import ImageUploadDialog from "./Dialogs/ImageUploadDialog";
 import DocumentPicker, { types } from 'react-native-document-picker'
 import ImageCropPicker from "react-native-image-crop-picker";
 import axios from "axios";
+const RNFS = require('react-native-fs');
+const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
 const Login = () => {
     const [userData, setUserData] = useState({ name: '', email: '', password: '', phone: '', otp: '' });
@@ -49,7 +51,6 @@ const Login = () => {
 
 
     useEffect(() => {
-        console.log({ userProfile2: userProfile[0] });
         if (userProfile[0]?.token) {
             navigation.navigate("Home");
             setUserData({ name: '', email: '', password: '', phone: '', otp: '' });
@@ -148,6 +149,20 @@ const Login = () => {
         return true;
     }
 
+    const createRealmUserProfile = (picPath, data) => {
+        realm.write(() => {
+            realm.create('UserProfile', {
+                _id: data?.user?._id || '',
+                name: data?.user?.name || '',
+                email: data?.user?.email || '',
+                pic: data?.user?.pic || '',
+                phone: data?.user?.phone || '',
+                picPath: picPath || '',
+                token: data?.token || '',
+            });
+        })
+    }
+
     const hLogin = () => {
         Keyboard.dismiss();
         if (!commonValidation()) {
@@ -157,16 +172,20 @@ const Login = () => {
         Api.post("/api/user/login", {
             email: userData.email,
             password: userData.password
-        }).then(({ data }) => {
-            realm.write(() => {
-                realm.create('UserProfile', {
-                    _id: data?.user?._id || '',
-                    name: data?.user?.name || '',
-                    email: data?.user?.email || '',
-                    pic: data?.user?.pic || '',
-                    phone: data?.user?.phone || '',
-                    token: data?.token || '',
-                });
+        }).then(async ({ data }) => {
+            await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Profiles`);
+            let fileExists = await RNFS.exists(`${profileDir}/${data?.user?.picName}`);
+            if (fileExists) {
+                createRealmUserProfile(`${profileDir}/${data?.user?.picName}`, data);
+                return;
+            }
+            RNFS.downloadFile({
+                fromUrl: data?.user?.pic,
+                toFile: `${profileDir}/${data?.user?.picName}`
+            }).promise.then((res) => {
+                createRealmUserProfile(`${profileDir}/${data?.user?.picName}`, data);
+            }).catch((error) => {
+                createRealmUserProfile(null, data);
             })
         }).catch((error) => {
             if (error?.message) {
@@ -214,28 +233,26 @@ const Login = () => {
         if (!commonValidation()) {
             return;
         }
-        Api.post("/api/user/sendOtp",
-            {
-                email: userData.email
-            }
-        ).then(() => {
-            setOtpMode(true);
-        }).catch((error) => {
-            if (error?.message) {
-                dispatch(showError(error?.message));
-            } else {
-                dispatch(showError("Something went wrong!"));
-            }
-        })
+        setOtpMode(true);
+        // Api.post("/api/user/sendOtp",
+        //     {
+        //         email: userData.email
+        //     }
+        // ).then(() => {
+        //     setOtpMode(true);
+        // }).catch((error) => {
+        //     if (error?.message) {
+        //         dispatch(showError(error?.message));
+        //     } else {
+        //         dispatch(showError("Something went wrong!"));
+        //     }
+        // })
     }
 
     const hSignIn = async () => {
-
-        let imgName = `${userData.name}+${userData.email}+${userData.phone}+${userData.otp}+${userData.password}+${String(Date.now())}`;
-        console.log({ imgName });
-        // let hashedName = createHash('sha256').update(imgName).digest('hex');
-        // console.log({ hashedName });
         let imageUrl = '';
+        let imageName = '';
+
         if (imageSource) {
             showLoader();
             try {
@@ -250,33 +267,32 @@ const Login = () => {
                 data.append('api_key', '38918525699347');
                 data.append('timestamp', timestamp);
                 let imgUpload = await axios.post('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', data);
-                console.log(imgUpload.data);
                 imageUrl = imgUpload.data.url;
+                imageName = `${imgUpload.data.public_id}.${imgUpload.data.format}`
             } catch (error) {
-                console.log({ error })
                 hideLoader();
                 dispatch(showError("Profile picture upload failed"));
                 setImageSource("");
             }
         }
+
         Api.post('/api/user/register', {
             name: userData.name,
             email: userData.email,
             phone: userData.phone,
             otp: userData.otp,
             password: userData.password,
-            pic: imageUrl
-        }).then(({ data }) => {
-            realm.write(() => {
-                realm.create('UserProfile', {
-                    _id: data?.user?._id || '',
-                    name: data?.user?.name || '',
-                    email: data?.user?.email || '',
-                    pic: data?.user?.pic || '',
-                    phone: data?.user?.phone || '',
-                    token: data?.token || '',
-                });
-            })
+            pic: imageUrl,
+            picName: imageName
+        }).then(async ({ data }) => {
+            await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Profiles`);
+            RNFS.copyFile(imageSource, `${profileDir}/${imageName}`).then(() => {
+                createRealmUserProfile(`${profileDir}/${imageName}`, data)
+                ImageCropPicker.clean().then(() => { }).catch(e => { });
+                RNFS.unlink(`file://${RNFS.ExternalDirectoryPath}/Pictures`).then(() => { }).catch((e) => { })
+            }).catch((error) => {
+                createRealmUserProfile(null, data);
+            });
         }).catch((error) => {
             if (error?.message) {
                 dispatch(showError(error?.message));
@@ -285,32 +301,6 @@ const Login = () => {
             }
         });
 
-        return;
-        if (imageSource) {
-            const imageUri = `file://${imageSource}`;
-            const timestamp = Date.now();
-            let data = new FormData();
-            data.append('file', {
-                name: `my_image_${timestamp}.jpg`,
-                type: 'image/jpeg',
-                uri: imageUri,
-            });
-            data.append('upload_preset', 'NotesChat');
-            data.append('api_key', '389185256993476');
-            data.append('timestamp', timestamp);
-
-            fetch('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', {
-                method: 'POST',
-                body: data,
-            })
-                .then((response) => response.json())
-                .then((responseJson) => {
-                    console.log('Image uploaded to Cloudinary:', responseJson);
-                })
-                .catch((error) => {
-                    console.error('Error uploading image to Cloudinary:', error);
-                });
-        }
     }
 
     const hGallery = async () => {
@@ -319,7 +309,6 @@ const Login = () => {
                 type: [types.images],
                 presentationStyle: 'fullScreen',
             });
-            console.log({ pickerResult });
             ImageCropPicker.openCropper({
                 path: `${pickerResult.uri}`,
                 width: 400,
@@ -327,7 +316,6 @@ const Login = () => {
                 compressImageQuality: 0.7,
                 cropperCircleOverlay: true,
             }).then(image => {
-                console.log(image);
                 setImageSource(image.path);
                 setImageMode(false);
             }).catch((error) => {

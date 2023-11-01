@@ -7,6 +7,7 @@ export class UserProfile extends Realm.Object {
             name: 'string',
             email: 'string',
             pic: 'string',
+            picPath: 'string',
             phone: 'string',
             token: 'string'
         },

@@ -20,6 +20,7 @@
     "react-native-contacts": "^7.0.7",
     "react-native-document-picker": "^9.0.1",
     "react-native-document-scanner-plugin": "^0.9.1",
+    "react-native-fs": "^2.20.0",
     "react-native-image-crop-picker": "^0.40.1",
     "react-native-image-picker": "^7.0.2",
     "react-native-otp-textinput": "^1.1.3",

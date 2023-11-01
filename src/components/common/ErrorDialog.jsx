@@ -6,7 +6,6 @@ import { hideError } from "../../Redux/Actions";
 const ErrorDialog = () => {
     const dispatch = useDispatch();
     const errorData = useSelector(state => state?.errorDialog);
-    console.log({ errorData });
 
     const hClose = () => {
         dispatch(hideError())
