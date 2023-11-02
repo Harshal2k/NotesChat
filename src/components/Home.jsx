@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useRealm } from "@realm/react";
 import { SceneMap, TabBar, TabView } from "react-native-tab-view";
 import { PermissionsAndroid, View, useWindowDimensions } from "react-native";
-import Chats from "./Chats";
+import Chats from "./Chats/Chats";
 import Notes from "./Notes";
 import { Icon, Text } from "react-native-paper";
 
