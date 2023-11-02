@@ -1,16 +1,44 @@
 import { useNavigation, useNavigationState } from "@react-navigation/native";
-import { NotesChatRealmContext } from "../Models.js"
 import { UserProfile } from "../Models.js/UserProfile";
-import DocumentPicker, { types } from 'react-native-document-picker'
 import { useEffect, useState } from "react";
-import CameraViewer from "./CameraView.jsx";
-import Video from 'react-native-video';
 import { useQuery, useRealm } from "@realm/react";
-import RNFetchBlob from "rn-fetch-blob";
-const { View, Image, PermissionsAndroid } = require("react-native")
-const { Text, Button } = require("react-native-paper")
-const RNFS = require('react-native-fs');
+import { SceneMap, TabBar, TabView } from "react-native-tab-view";
+import { PermissionsAndroid, View, useWindowDimensions } from "react-native";
+import Chats from "./Chats";
+import Notes from "./Notes";
+import { Icon, Text } from "react-native-paper";
 
+const FirstRoute = () => (
+    <View style={{ flex: 1, backgroundColor: '#121b22' }} />
+);
+
+const SecondRoute = () => (
+    <View style={{ flex: 1, backgroundColor: '#121b22' }} />
+);
+
+const renderScene = SceneMap({
+    first: Chats,
+    second: Notes,
+});
+
+const renderTabBar = props => (
+    <TabBar
+        {...props}
+        pressColor="#056fb6"
+        pressOpacity={1}
+        tabStyle={{ backgroundColor: '#056fb6', margin: 5, borderRadius: 10 }}
+        indicatorStyle={{ backgroundColor: 'white' }}
+        style={{ backgroundColor: '#067fd0' }}
+        renderLabel={({ route, focused, color }) => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Icon source={route?.title === "Chats" ? "message-text" : "file-multiple"} color={color} size={20} />
+                <Text style={{ color, fontWeight: 'bold', marginLeft: 5, fontSize: 16 }}>
+                    {route.title}
+                </Text>
+            </View>
+        )}
+    />
+);
 
 const Home = () => {
     const navigation = useNavigation();
@@ -19,50 +47,13 @@ const Home = () => {
     const userProfile = useQuery(UserProfile)
     const realm = useRealm()
 
-    const [result, setResult] = useState([]);
-    const [count, setCount] = useState(0);
-    const [camMode, setCamMode] = useState(false);
-    // const dirs = RNFetchBlob.fs.dirs
-    // console.log(dirs.DocumentDir)
-    // console.log(dirs.LibraryDir)
-    // console.log(dirs.DCIMDir)
-    // console.log(dirs.DownloadDir)
-    // console.log(dirs.MainBundleDir)
-    // console.log(dirs.D)
-    // RNFetchBlob.fs.ls(`${dirs.MainBundleDir}/cache/react-native-image-crop-picker`)
-    // // files will an array contains filenames
-    // .then((files) => {
-    //     console.log(files)
-    // })
+    const layout = useWindowDimensions();
 
-    useEffect(() => {
-        let loginNav = navigations?.filter(nav => nav?.name === "Login");
-        if (loginNav?.length > 0) {
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Home' }],
-            });
-        }
-    }, [])
-
-    const hLogout = () => {
-        realm.write(() => {
-            realm.delete(userProfile);
-            navigation.navigate("Login");
-        });
-    }
-
-    const hPrev = () => {
-        if (result?.length !== 0 && count !== 0) {
-            setCount(count - 1)
-        }
-    }
-
-    const hNext = () => {
-        if (count < result?.length) {
-            setCount(count + 1)
-        }
-    }
+    const [index, setIndex] = useState(0);
+    const [routes] = useState([
+        { key: 'first', title: 'Chats' },
+        { key: 'second', title: 'Notes' },
+    ]);
 
     const getContacts = () => {
         PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_CONTACTS, {
@@ -87,55 +78,13 @@ const Home = () => {
     }
 
     return (
-        <>
-            {camMode ? <CameraViewer setCameraMode={setCamMode} setImageSource={(image) => { setResult([...result, { uri: `file://${image}` }]) }}></CameraViewer>
-                :
-                <View style={{ flex: 1 }}>
-                    <Text style={{ textAlign: 'center', fontSize: 30 }}>Memories</Text>
-                    {/* <Button mode="contained" onPress={hLogout}>Log out</Button> */}
-                    <Button
-                        onPress={async () => {
-                            try {
-                                const pickerResult = await DocumentPicker.pick({
-                                    allowMultiSelection: true,
-                                    type: [types.video, types.images],
-                                    presentationStyle: 'fullScreen',
-                                })
-                                setResult(pickerResult)
-                            } catch (e) {
-                                console.log({ e })
-                            }
-                        }}
-                    >Import Memories</Button>
-                    <View style={{ height: '80%', width: '100%', justifyContent: 'center', alignItems: 'center' }}>
-                        {
-                            result[count]?.type?.includes("video") ?
-                                <Video source={{ uri: result[count]?.uri || "content://com.android.providers.media.documents/document/video%3A643059" }}   // Can be a URL or a local file.
-                                    onBuffer={() => { console.log("buffering") }}
-                                    onError={() => { console.log("error") }}
-                                    controls={true}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        bottom: 0,
-                                        right: 0,
-                                    }}
-                                    resizeMode="contain"
-                                />
-                                :
-                                <Image style={{ width: '100%', height: '100%', resizeMode: 'contain' }} source={{ uri: result[count]?.uri }} />
-                        }
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 10 }}>
-                        <Button mode="contained" disabled={result?.length == 0 || count == 0} onPress={hPrev}>PREVIOUS</Button>
-                        <Button mode="contained" onPress={setCamMode}>Click</Button>
-                        <Button mode="contained" disabled={result?.length == 0 || result?.length == (count + 1)} onPress={hNext}>NEXT</Button>
-                    </View>
-                    <Button mode="contained" style={{ marginTop: 50 }} onPress={getContacts}>Get Contacts</Button>
-                </View>
-            }
-        </>
+        <TabView
+            renderTabBar={renderTabBar}
+            navigationState={{ index, routes }}
+            renderScene={renderScene}
+            onIndexChange={setIndex}
+            initialLayout={{ width: layout.width }}
+        />
     )
 }
 
