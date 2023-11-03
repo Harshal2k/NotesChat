@@ -3,16 +3,24 @@ import { StyleSheet, View } from "react-native";
 import { Avatar, Text, TouchableRipple } from "react-native-paper";
 import { Image } from "react-native-paper/lib/typescript/components/Avatar/Avatar";
 import colors from "../../styles/Colours";
-
+const defaultimage = require('../../Images/default_avatar.jpg')
 const Chat = ({ chatData }) => {
+
+    const imageSource = () => {
+        if (!chatData?.isGroupChat && chatData?.usersList[0]?.picPath) {
+            return { uri: chatData?.usersList[0]?.picPath }
+        } else {
+            return defaultimage;
+        }
+    }
 
     return (
         <TouchableRipple style={styles.touchableRipple} rippleColor="#056fb6" onPress={() => { console.log(chatData.title) }} borderless={true}>
             <View style={styles.item}>
                 <Text style={styles.dateTime}>{chatData?.date || '10:00 pm'}</Text>
-                <Avatar.Image style={{}} size={55} source={chatData?.source || require('../../Images/default_avatar.jpg')} />
+                <Avatar.Image style={{backgroundColor:'#080f13'}} size={55} source={imageSource()} />
                 <View style={styles.txtContainer}>
-                    <Text style={styles.title}>{chatData?.title || ''}</Text>
+                    <Text style={styles.title}>{!chatData?.isGroupChat ? chatData?.usersList[0]?.name || '' : ''}</Text>
                     <Text style={styles.message}>hi, Harshal how are you?</Text>
                 </View>
             </View>
@@ -49,11 +57,11 @@ const styles = StyleSheet.create({
     },
     dateTime: {
         color: '#056fb6',
-        fontSize:12,
-        fontWeight:'700',
-        position:'absolute',
-        top:10,
-        right:10
+        fontSize: 12,
+        fontWeight: '700',
+        position: 'absolute',
+        top: 10,
+        right: 10
     }
 });
 

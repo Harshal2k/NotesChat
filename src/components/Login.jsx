@@ -1,19 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Image, Keyboard, StyleSheet, TouchableHighlight, View } from "react-native";
-import { Button, Dialog, HelperText, Icon, Portal, Text, TextInput } from "react-native-paper";
+import { Button, Icon, Text, TextInput } from "react-native-paper";
 import colors from "../styles/Colours";
-import { Camera, useCameraDevice, useCameraPermission } from "react-native-vision-camera";
 import CameraViewer from "./CameraView";
-import RNFetchBlob from "rn-fetch-blob";
 import { Api } from "../API";
-import { AsyncStorage } from "react-native"
-import { NotesChatRealmContext } from "../Models.js";
 import { UserProfile } from "../Models.js/UserProfile";
 import { useNavigation } from "@react-navigation/native";
 import OTPTextView from "react-native-otp-textinput";
 import HelperInput from "./common/HelperInput";
 import { validateEmail } from "../Helpers/Validations";
-import Loader from "./common/Loader";
 import { hideLoader, showError, showLoader } from "../Redux/Actions";
 import { useQuery, useRealm } from "@realm/react";
 import { useDispatch } from "react-redux";
@@ -21,6 +16,7 @@ import ImageUploadDialog from "./Dialogs/ImageUploadDialog";
 import DocumentPicker, { types } from 'react-native-document-picker'
 import ImageCropPicker from "react-native-image-crop-picker";
 import axios from "axios";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
@@ -150,6 +146,7 @@ const Login = () => {
     }
 
     const createRealmUserProfile = (picPath, data) => {
+        AsyncStorage.setItem('token', data?.token || '').catch((err) => { })
         realm.write(() => {
             realm.create('UserProfile', {
                 _id: data?.user?._id || '',

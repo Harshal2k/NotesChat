@@ -25,8 +25,10 @@ export class UserModel extends Realm.Object {
             createdat: 'string?',
             updatedat: 'string?',
             picname: 'string?',
+            picPath: 'string?',
             __v: 'int?',
         },
+        primaryKey: '_id',
     };
 }
 
@@ -42,5 +44,6 @@ export class MessageModel extends Realm.Object {
             updatedat: 'string?',
             __v: 'int?',
         },
+        primaryKey: '_id',
     };
 }

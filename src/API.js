@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { hideLoader, showLoader } from './Redux/Actions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const Api = axios.create({
     baseURL: 'http://192.168.10.15:4000',
@@ -7,22 +8,23 @@ export const Api = axios.create({
 
 export const Api1 = axios.create({
     baseURL: 'http://192.168.10.15:4000',
-}); +
+});
 
 
-    // Request interceptor for adding the bearer token
-    Api1.interceptors.request.use(
-        (config) => {
-            const token = localStorage.getItem('token'); // Assuming you store the token in localStorage
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-            return config;
-        },
-        (error) => {
-            return Promise.reject(error);
+// Request interceptor for adding the bearer token
+Api1.interceptors.request.use(
+    async (config) => {
+        const token = await AsyncStorage.getItem('token'); // Assuming you store the token in localStorage
+        console.log({ token });
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
         }
-    );
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
 
 
 // Request interceptor for adding the bearer token

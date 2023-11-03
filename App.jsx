@@ -29,6 +29,8 @@ import { useQuery, useRealm } from '@realm/react';
 import { UserProfile } from './src/Models.js/UserProfile';
 import ActionDialog from './src/components/Dialogs/ActionDialog';
 import colors from './src/styles/Colours';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ChatsModel, MessageModel, UserModel } from './src/Models.js/ChatsModel';
 
 
 const Stack = createNativeStackNavigator();
@@ -36,7 +38,10 @@ const Stack = createNativeStackNavigator();
 function AppHeader() {
   const navigation = useNavigation();
   const realm = useRealm()
-  const userProfile = useQuery(UserProfile)
+  const userProfile = useQuery(UserProfile);
+  const chatsModel = useQuery(ChatsModel);
+  const userModel = useQuery(UserModel);
+  const messageModel = useQuery(MessageModel);
   const [showLogout, setShowLogout] = useState(false);
 
   useEffect(() => {
@@ -48,8 +53,12 @@ function AppHeader() {
 
   const hLogout = () => {
     console.log({ userProfile })
+    AsyncStorage.setItem('token', '').catch((err) => { })
     realm.write(() => {
-      realm.delete(userProfile)
+      realm.delete(userProfile);
+      realm.delete(chatsModel);
+      realm.delete(userModel);
+      realm.delete(messageModel);
       navigation.navigate("Login");
     });
   }

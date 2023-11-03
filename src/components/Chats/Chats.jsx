@@ -1,15 +1,67 @@
-import React from "react";
-import { FlatList, StyleSheet, TextInput, View } from "react-native";
+import React, { useEffect } from "react";
+import { FlatList, Image, StyleSheet, TextInput, View } from "react-native";
 import Chat from "./Chat";
 import colors from "../../styles/Colours";
 import { Button, Icon } from "react-native-paper";
 import { useQuery, useRealm } from "@realm/react";
-import { ChatsModel } from "../../Models.js/ChatsModel";
+import { ChatsModel, UserModel } from "../../Models.js/ChatsModel";
+import { Api1 } from "../../API";
+const RNFS = require('react-native-fs');
+const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
 const Chats = () => {
     const realm = useRealm();
-    const chats = useQuery(ChatsModel)
-    console.log({ chats:JSON.stringify(chats[0]) });
+    const chats = useQuery(ChatsModel);
+    const users = useQuery(UserModel);
+    // console.log({ chats: JSON.stringify(chats[0]) });
+    // console.log({ users })
+
+
+    const storeChats = async (chats) => {
+        await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Profiles`);
+        chats?.map(async (chat) => {
+            let usersCopy = JSON.parse(JSON.stringify(chat?.users));
+            usersCopy = await Promise.all(usersCopy?.map(async (data) => {
+                let fileExists = await RNFS.exists(`${profileDir}/${data?.picName}`);
+                if (fileExists) {
+                    return {
+                        ...data,
+                        picPath: `${profileDir}/${data?.picName}`
+                    };
+                }
+                let filePath = ''
+                await RNFS.downloadFile({
+                    fromUrl: data?.pic,
+                    toFile: `${profileDir}/${data?.picName}`
+                }).promise.then((res) => {
+                    filePath = `${profileDir}/${data?.picName}`
+                }).catch((error) => { })
+                console.log({ filePath });
+                return {
+                    ...data,
+                    picPath: filePath
+                }
+            }));
+            realm.write(async () => {
+                realm.create('ChatsModel',
+                    {
+                        chatId: chat?._id,
+                        isGroupChat: chat?.isGroupChat,
+                        usersList: usersCopy || [],
+                        createdAt: chat?.createdAt,
+                        latestMessage: chat?.latestMessage,
+                    }
+                    , true)
+            })
+
+        })
+    }
+
+    useEffect(() => {
+        Api1.get('/api/chat/allChats')
+            .then(({ data }) => { storeChats(data.chats) })
+            .catch((error) => { console.log({ error }) })
+    }, [])
 
     const DATA = [
         {
@@ -94,10 +146,6 @@ const Chats = () => {
                     }
                 });
         })
-        
-        // realm.write(() => {
-        //     realm.delete(chats)
-        //   });
     }
 
     return (
@@ -108,7 +156,7 @@ const Chats = () => {
                 <Icon source={"magnify"} size={20} color="white" />
             </View>
             <FlatList
-                data={DATA}
+                data={chats}
                 renderItem={({ item }) => <Chat chatData={item} />}
                 keyExtractor={item => item.id}
             />
@@ -130,7 +178,8 @@ const styles = StyleSheet.create({
     textInput: {
         paddingVertical: 8,
         color: colors.white,
-        paddingHorizontal: 17
+        paddingHorizontal: 17,
+        flex:1
     }
 });
 
