@@ -31,6 +31,7 @@ import ActionDialog from './src/components/Dialogs/ActionDialog';
 import colors from './src/styles/Colours';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatsModel, MessageModel, UserModel } from './src/Models.js/ChatsModel';
+import FindUsers from './src/components/FindUsers';
 
 
 const Stack = createNativeStackNavigator();
@@ -93,6 +94,15 @@ function App() {
       <Stack.Navigator initialRouteName={userProfile[0]?._id ? 'Home' : 'Login'}>
         <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
         <Stack.Screen name="Home" component={Home} options={headerOptions} />
+        <Stack.Screen name="FindUsers" options={{
+          title: "Find Noteschat Users",
+          animation: 'slide_from_bottom',
+          headerStyle: {
+            backgroundColor: '#151a7b',
+          },
+          headerTintColor: 'white',
+          statusBarColor: '#223bc9'
+        }} component={FindUsers} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, Image, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, Image, StyleSheet, TextInput, TouchableHighlight, View } from "react-native";
 import Chat from "./Chat";
 import colors from "../../styles/Colours";
-import { Button, Icon } from "react-native-paper";
+import { Button, Icon, IconButton } from "react-native-paper";
 import { useQuery, useRealm } from "@realm/react";
 import { ChatsModel, UserModel } from "../../Models.js/ChatsModel";
 import { Api1 } from "../../API";
 import useDebounce from "../../Hooks/useDebounce";
+import { useNavigation } from "@react-navigation/native";
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
@@ -16,6 +17,7 @@ const Chats = () => {
     const users = useQuery(UserModel);
     const [search, setSearch] = useState('');
     const [allChats, setAllChats] = useState([]);
+    const navigation = useNavigation();
 
     const debouncedSearch = useDebounce(search, 400);
 
@@ -75,9 +77,10 @@ const Chats = () => {
     }
 
     useEffect(() => {
-        Api1.get('/api/chat/allChats')
-            .then(({ data }) => { storeChats(data.chats) })
-            .catch((error) => { console.log({ error }) })
+        console.log("chatssssssssssss");
+        // Api1.get('/api/chat/allChats')
+        //     .then(({ data }) => { storeChats(data.chats) })
+        //     .catch((error) => { console.log({ error }) })
     }, [])
 
     const DATA = [
@@ -178,8 +181,11 @@ const Chats = () => {
             <FlatList
                 data={allChats}
                 renderItem={({ item }) => <Chat chatData={item} />}
-                keyExtractor={item => item?.id}
+                keyExtractor={item => item?.chatId}
             />
+            <TouchableHighlight style={styles.iconBtnStyle} underlayColor={"#344857"} onPress={() => {console.log("innnnnnnnnnnnn"); navigation.navigate("FindUsers") }}>
+                <Icon source={"account-plus"} size={30} color="white" />
+            </TouchableHighlight>
         </View>
     )
 }
@@ -200,6 +206,17 @@ const styles = StyleSheet.create({
         color: colors.white,
         paddingHorizontal: 17,
         flex: 1
+    },
+    iconBtnStyle: {
+        backgroundColor: '#056fb6',
+        width: 60,
+        height: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 100,
+        position: 'absolute',
+        bottom: 15,
+        right: 15
     }
 });
 
