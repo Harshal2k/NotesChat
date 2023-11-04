@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { FlatList, StyleSheet, TextInput, TouchableHighlight, View } from "react-native";
-import { Avatar, Icon, Text, TouchableRipple } from "react-native-paper";
+import { FlatList, Keyboard, StyleSheet, TextInput, TouchableHighlight, View } from "react-native";
+import { ActivityIndicator, Avatar, Icon, Text, TouchableRipple } from "react-native-paper";
 import colors from "../styles/Colours";
 import useDebounce from "../Hooks/useDebounce";
 import { Api1 } from "../API";
@@ -19,9 +19,21 @@ const User = ({ userData }) => {
     )
 }
 
+const renderNoDataFound = () => {
+
+    return (
+        <View style={{flexDirection:'column', justifyContent: 'flex-end', alignItems: 'center', height: 280 }}>
+            <Icon source={"account-multiple-remove"} size={80} color="white"/>
+            <Text style={{ color: 'white',fontSize:16 }}>No chat buddies here, keep searching!</Text>
+        </View>
+    )
+}
+
 const FindUsers = () => {
     const [active, setActive] = useState('Email');
     const [search, setSearch] = useState('');
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     const allUsers = [
         {
@@ -54,14 +66,20 @@ const FindUsers = () => {
     }
 
     const searchUser = () => {
+        console.log("innnnnnnnnn")
+        setLoading(true)
+        Keyboard.dismiss();
         Api1.post('/api/user/findUsers', {
             [active?.toLowerCase()]: search
-        }).then((data) => {
-            console.log({ data })
+        }).then(({ data }) => {
+            console.log(data.users)
+            setUsers(data?.users || [])
         }).catch((err) => { console.log({ err }) })
+            .finally(() => { setLoading(false) })
     }
+    console.log({ users });
     return (
-        <View style={{ flex: 1, backgroundColor: '#121b22' }}>
+        <View style={{ flex: 1, backgroundColor: '#121b22', flexDirection: 'column' }}>
             <View style={styles.btnContainer}>
                 <TouchableHighlight underlayColor={"#044977"} style={{ ...styles.btnStyle, backgroundColor: active == 'Email' ? '#044977' : '#056fb6' }} onPress={() => { setSearch(''); setActive('Email') }}>
                     <Text style={styles.txt}>Email</Text>
@@ -75,15 +93,21 @@ const FindUsers = () => {
             </View>
             <View style={styles.searchContainer}>
                 <TextInput style={styles.textInput} value={search} onChangeText={hSearch} placeholder={`Search Users by ${active}`} placeholderTextColor={colors.white} keyboardType={active === 'Email' ? 'email-address' : active === 'Phone' ? 'phone-pad' : 'default'} />
-                <TouchableHighlight style={styles.searchBtn} disabled={active?.trim() === ''} onPress={searchUser}>
-                    <Icon source={"account-search"} size={30} color="white" />
+                <TouchableHighlight style={[styles.searchBtn, (search?.trim() === '') && { opacity: 0.5 }]} disabled={loading ? loading : search?.trim() === ''} onPress={searchUser} underlayColor={"#1a9a47"}>
+                    {
+                        loading ?
+                            <ActivityIndicator animating={true} color="white" />
+                            :
+                            <Icon source={"account-search"} size={30} color="white" />
+                    }
                 </TouchableHighlight>
             </View>
 
             <FlatList
-                data={allUsers}
+                data={users}
                 renderItem={({ item }) => <User userData={item} />}
                 keyExtractor={item => item?._id}
+                ListEmptyComponent={renderNoDataFound}
             />
         </View>
     )
@@ -158,7 +182,7 @@ const styles = StyleSheet.create({
         width: 80,
         borderRadius: 12,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     }
 })
 
