@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { FlatList, Image, StyleSheet, TextInput, View } from "react-native";
 import Chat from "./Chat";
 import colors from "../../styles/Colours";
@@ -6,6 +6,7 @@ import { Button, Icon } from "react-native-paper";
 import { useQuery, useRealm } from "@realm/react";
 import { ChatsModel, UserModel } from "../../Models.js/ChatsModel";
 import { Api1 } from "../../API";
+import useDebounce from "../../Hooks/useDebounce";
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
@@ -13,8 +14,24 @@ const Chats = () => {
     const realm = useRealm();
     const chats = useQuery(ChatsModel);
     const users = useQuery(UserModel);
-    // console.log({ chats: JSON.stringify(chats[0]) });
-    // console.log({ users })
+    const [search, setSearch] = useState('');
+    const [allChats, setAllChats] = useState([]);
+
+    const debouncedSearch = useDebounce(search, 400);
+
+    useEffect(() => {
+        if (!search) {
+            setAllChats(chats);
+        } else {
+            let tempChats = chats?.filter(chat => {
+                if (chat?.usersList[0]?.name?.toLowerCase()?.includes(debouncedSearch?.toLowerCase())) {
+                    return true;
+                }
+                return false;
+            });
+            setAllChats(tempChats);
+        }
+    }, [chats, debouncedSearch])
 
 
     const storeChats = async (chats) => {
@@ -148,17 +165,20 @@ const Chats = () => {
         })
     }
 
+    const hSearch = (text) => {
+        setSearch(text);
+    }
+
     return (
         <View style={{ flex: 1, backgroundColor: '#121b22' }}>
-            <Button onPress={createChat}>Click</Button>
             <View style={styles.searchContainer}>
-                <TextInput style={styles.textInput} placeholder="Search" placeholderTextColor={colors.white} />
+                <TextInput style={styles.textInput} value={search} onChangeText={hSearch} placeholder="Search" placeholderTextColor={colors.white} />
                 <Icon source={"magnify"} size={20} color="white" />
             </View>
             <FlatList
-                data={chats}
+                data={allChats}
                 renderItem={({ item }) => <Chat chatData={item} />}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item?.id}
             />
         </View>
     )
@@ -179,7 +199,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         color: colors.white,
         paddingHorizontal: 17,
-        flex:1
+        flex: 1
     }
 });
 
