@@ -174,6 +174,7 @@ const Chats = () => {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#121b22' }}>
+            <Button onPress={() => { navigation.navigate("Messages") }}>Click</Button>
             <View style={styles.searchContainer}>
                 <TextInput style={styles.textInput} value={search} onChangeText={hSearch} placeholder="Search" placeholderTextColor={colors.white} />
                 <Icon source={"magnify"} size={20} color="white" />
@@ -183,7 +184,7 @@ const Chats = () => {
                 renderItem={({ item }) => <Chat chatData={item} />}
                 keyExtractor={item => item?.chatId}
             />
-            <TouchableHighlight style={styles.iconBtnStyle} underlayColor={"#344857"} onPress={() => {console.log("innnnnnnnnnnnn"); navigation.navigate("FindUsers") }}>
+            <TouchableHighlight style={styles.iconBtnStyle} underlayColor={"#344857"} onPress={() => { console.log("innnnnnnnnnnnn"); navigation.navigate("FindUsers") }}>
                 <Icon source={"account-plus"} size={30} color="white" />
             </TouchableHighlight>
         </View>

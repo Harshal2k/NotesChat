@@ -3,8 +3,14 @@ import { StyleSheet, View } from "react-native";
 import { Avatar, Text, TouchableRipple } from "react-native-paper";
 import { Image } from "react-native-paper/lib/typescript/components/Avatar/Avatar";
 import colors from "../../styles/Colours";
+import { useDispatch } from "react-redux";
+import { set_active_chat } from "../../Redux/Actions";
+import { useNavigation } from "@react-navigation/native";
 const defaultimage = require('../../Images/default_avatar.jpg')
+
 const Chat = ({ chatData }) => {
+    const dispatch = useDispatch();
+    const navigation = useNavigation();
 
     const imageSource = () => {
         if (!chatData?.isGroupChat && chatData?.usersList[0]?.picPath) {
@@ -14,11 +20,16 @@ const Chat = ({ chatData }) => {
         }
     }
 
+    const hChat = () => {
+        dispatch(set_active_chat(chatData));
+        navigation.navigate("Messages");
+    }
+
     return (
-        <TouchableRipple style={styles.touchableRipple} rippleColor="#056fb6" onPress={() => { console.log(chatData.title) }} borderless={true}>
+        <TouchableRipple style={styles.touchableRipple} rippleColor="#056fb6" onPress={hChat} borderless={true}>
             <View style={styles.item}>
                 <Text style={styles.dateTime}>{chatData?.date || '10:00 pm'}</Text>
-                <Avatar.Image style={{backgroundColor:'#080f13'}} size={55} source={imageSource()} />
+                <Avatar.Image style={{ backgroundColor: '#080f13' }} size={55} source={imageSource()} />
                 <View style={styles.txtContainer}>
                     <Text style={styles.title}>{!chatData?.isGroupChat ? chatData?.usersList[0]?.name || '' : ''}</Text>
                     <Text style={styles.message}>hi, Harshal how are you?</Text>

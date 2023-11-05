@@ -11,7 +11,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { ActivityIndicator, Icon, MD2Colors } from 'react-native-paper';
+import { ActivityIndicator, Avatar, Icon, MD2Colors } from 'react-native-paper';
 
 import {
   Colors,
@@ -32,6 +32,8 @@ import colors from './src/styles/Colours';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatsModel, MessageModel, UserModel } from './src/Models.js/ChatsModel';
 import FindUsers from './src/components/FindUsers';
+import Messages from './src/components/Chats/Messages';
+import { useSelector } from 'react-redux';
 
 
 const Stack = createNativeStackNavigator();
@@ -75,6 +77,17 @@ function AppHeader() {
   )
 }
 
+function MessageHeader() {
+  const chatData = useSelector(state => state.activeChat);
+
+  return (
+    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: -20 }}>
+      <Avatar.Image style={{ backgroundColor: '#080f13' }} size={40} source={chatData?.picPath ? { uri: chatData?.picPath } : require('./src/Images/default_avatar.jpg')} />
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.white, marginLeft: 10 }}>{chatData?.name || ''}</Text>
+    </View>
+  )
+}
+
 const headerOptions = {
   headerBackVisible: false,
   headerBackTitleVisible: false,
@@ -103,6 +116,12 @@ function App() {
           headerTintColor: 'white',
           statusBarColor: '#223bc9'
         }} component={FindUsers} />
+        <Stack.Screen name="Messages" component={Messages} options={{
+          headerTitle: (props) => (<MessageHeader {...props} />),
+          headerStyle: { backgroundColor: '#151a7b' },
+          statusBarColor: '#223bc9',
+          headerTintColor: 'white'
+        }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
