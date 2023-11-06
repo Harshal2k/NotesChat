@@ -6,9 +6,12 @@ export class ChatsModel extends Realm.Object {
         properties: {
             chatId: 'string',
             isGroupChat: 'bool',
-            usersList: 'User[]', // Specify the type of objects in the list (User objects in this case)
+            groupName: 'string?',
+            chatUser: 'User?',
+            groupAdmin: 'User?',
+            usersList: 'User[]',
             createdAt: 'string',
-            latestMessage: 'Message?', // Use '?' to indicate that it's an optional property
+            latestMessage: 'Message?', // '?' to indicate that it's an optional property
         },
         primaryKey: 'chatId',
     };
@@ -38,6 +41,8 @@ export class MessageModel extends Realm.Object {
         properties: {
             _id: 'string?',
             sender: 'User?', // Define sender as a User object
+            subject: 'string?',
+            pages: 'Page[]',
             content: 'string?',
             chat: 'string?',
             createdat: 'string?',
@@ -46,4 +51,16 @@ export class MessageModel extends Realm.Object {
         },
         primaryKey: '_id',
     };
+}
+
+export class Page extends Realm.Object {
+    static schema = {
+        name: 'Page',
+        properties: {
+            pic: 'string?',
+            picPath: 'string?',
+            picName: 'string?'
+        },
+        primaryKey: 'pic'
+    }
 }

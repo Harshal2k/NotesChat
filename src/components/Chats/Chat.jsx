@@ -6,6 +6,7 @@ import colors from "../../styles/Colours";
 import { useDispatch } from "react-redux";
 import { set_active_chat } from "../../Redux/Actions";
 import { useNavigation } from "@react-navigation/native";
+import { UserProfile } from "../../Models.js/UserProfile";
 const defaultimage = require('../../Images/default_avatar.jpg')
 
 const Chat = ({ chatData }) => {
@@ -13,15 +14,24 @@ const Chat = ({ chatData }) => {
     const navigation = useNavigation();
 
     const imageSource = () => {
-        if (!chatData?.isGroupChat && chatData?.usersList[0]?.picPath) {
-            return { uri: chatData?.usersList[0]?.picPath }
+        if (!chatData?.isGroupChat && chatData?.chatUser?.picPath) {
+            return { uri: chatData?.chatUser?.picPath }
         } else {
             return defaultimage;
         }
     }
 
     const hChat = () => {
-        dispatch(set_active_chat(chatData));
+        console.log({ chatData })
+        dispatch(set_active_chat({
+            chatId: chatData?.chatId,
+            userId: chatData?.chatUser?._id,
+            name: chatData?.chatUser?.name,
+            email: chatData?.chatUser?.email,
+            pic: chatData?.chatUser?.pic,
+            picname: chatData?.chatUser?.picname,
+            picPath: chatData?.chatUser?.picPath,
+        }));
         navigation.navigate("Messages");
     }
 
@@ -31,7 +41,7 @@ const Chat = ({ chatData }) => {
                 <Text style={styles.dateTime}>{chatData?.date || '10:00 pm'}</Text>
                 <Avatar.Image style={{ backgroundColor: '#080f13' }} size={55} source={imageSource()} />
                 <View style={styles.txtContainer}>
-                    <Text style={styles.title}>{!chatData?.isGroupChat ? chatData?.usersList[0]?.name || '' : ''}</Text>
+                    <Text style={styles.title}>{!chatData?.isGroupChat ? chatData?.chatUser?.name || '' : chatData?.groupName || ''}</Text>
                     <Text style={styles.message}>hi, Harshal how are you?</Text>
                 </View>
             </View>

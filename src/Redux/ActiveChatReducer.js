@@ -1,15 +1,13 @@
 import { SET_ACTIVE_CHAT } from "./constants"
 
 let defaultState = {
-    _id: '',
+    chatId: '',
+    userId: '',
     name: '',
     email: '',
     pic: '',
-    createdat: '',
-    updatedat: '',
     picname: '',
     picPath: '',
-    __v: '',
 }
 
 export const ActiveChatReducer = (state = defaultState, action) => {

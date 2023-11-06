@@ -120,8 +120,10 @@ function App() {
           headerTitle: (props) => (<MessageHeader {...props} />),
           headerStyle: { backgroundColor: '#151a7b' },
           statusBarColor: '#223bc9',
-          headerTintColor: 'white'
+          headerTintColor: 'white',
+          animation:'fade_from_bottom'
         }} />
+        <Stack.Screen name="Scanner" component={Scanner} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

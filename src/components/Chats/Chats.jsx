@@ -8,6 +8,7 @@ import { ChatsModel, UserModel } from "../../Models.js/ChatsModel";
 import { Api1 } from "../../API";
 import useDebounce from "../../Hooks/useDebounce";
 import { useNavigation } from "@react-navigation/native";
+import { UserProfile } from "../../Models.js/UserProfile";
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
@@ -15,6 +16,7 @@ const Chats = () => {
     const realm = useRealm();
     const chats = useQuery(ChatsModel);
     const users = useQuery(UserModel);
+    const userProfile = useQuery(UserProfile);
     const [search, setSearch] = useState('');
     const [allChats, setAllChats] = useState([]);
     const navigation = useNavigation();
@@ -26,8 +28,10 @@ const Chats = () => {
             setAllChats(chats);
         } else {
             let tempChats = chats?.filter(chat => {
-                if (chat?.usersList[0]?.name?.toLowerCase()?.includes(debouncedSearch?.toLowerCase())) {
+                if (chat?.isGroupChat && chat?.groupName?.toLowerCase()?.includes(debouncedSearch?.toLowerCase())) {
                     return true;
+                } else if (!chat?.isGroupChat && chat?.chatUser?.name?.toLowerCase()?.includes(debouncedSearch?.toLowerCase())) {
+                    return true
                 }
                 return false;
             });
@@ -61,11 +65,15 @@ const Chats = () => {
                     picPath: filePath
                 }
             }));
+            let chatUser = usersCopy?.find(user => user?._id !== userProfile[0]?._id);
             realm.write(async () => {
                 realm.create('ChatsModel',
                     {
                         chatId: chat?._id,
                         isGroupChat: chat?.isGroupChat,
+                        groupName: chat?.name,
+                        chatUser: chatUser,
+                        groupAdmin: chat?.groupAdmin,
                         usersList: usersCopy || [],
                         createdAt: chat?.createdAt,
                         latestMessage: chat?.latestMessage,
@@ -78,9 +86,9 @@ const Chats = () => {
 
     useEffect(() => {
         console.log("chatssssssssssss");
-        // Api1.get('/api/chat/allChats')
-        //     .then(({ data }) => { storeChats(data.chats) })
-        //     .catch((error) => { console.log({ error }) })
+        Api1.get('/api/chat/allChats')
+            .then(({ data }) => { storeChats(data.chats) })
+            .catch((error) => { console.log({ error }) })
     }, [])
 
     const DATA = [
