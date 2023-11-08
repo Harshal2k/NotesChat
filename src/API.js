@@ -54,6 +54,7 @@ Api1.interceptors.response.use(
         return config;
     },
     (error) => {
+        console.log({ error });
         return Promise.reject(error?.response?.data || error);
     }
 );

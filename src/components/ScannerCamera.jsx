@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Dimensions, FlatList, Image, ScrollView, StyleSheet, TouchableHighlight, View } from "react-native";
-import { Icon, Text, TouchableRipple } from "react-native-paper";
+import { Dimensions, FlatList, Image, Keyboard, ScrollView, StyleSheet, TouchableHighlight, View } from "react-native";
+import { Button, Icon, Text, TextInput, TouchableRipple } from "react-native-paper";
 import { Camera, useCameraDevice, useCameraFormat, useCameraPermission } from "react-native-vision-camera";
 import ImageViewerDialog from "./Dialogs/ImageViewerDialog";
 import { AutoDragSortableView, DragSortableView } from "react-native-drag-sort";
+import HelperInput from "./common/HelperInput";
+import { useDispatch, useSelector } from "react-redux";
+import { showError } from "../Redux/Actions";
+import { Api1 } from "../API";
+import axios from "axios";
+import { Image as ImageCompress } from 'react-native-compressor';
 const testImage = require('../Images/testImage.jpeg');
+const RNFS = require('react-native-fs');
+const profileDir = `file://${RNFS.ExternalDirectoryPath}`
 
 const sHeight = Dimensions.get("window").height;
 const sWidth = Dimensions.get("window").width;
@@ -38,11 +46,11 @@ const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
                             <TouchableRipple key={index} rippleColor="red" style={{ ...styles.imgContainer, borderRadius: 10 }}>
                                 <>
                                     <Image resizeMode="contain" style={{ height: 200, width: 150, borderRadius: 10 }} source={{ uri: item }} />
-                                    <View style={{ position: 'absolute', width: '100%', bottom: 0, flexDirection: 'row', justifyContent: 'space-between' }}>
-                                        <TouchableHighlight style={{ flex: 1, backgroundColor: '#00c851', alignItems: 'center', borderBottomLeftRadius: 8, borderRightWidth: 1, borderColor: 'white', borderTopWidth: 2 }} onPress={() => { }}>
+                                    <View style={{ position: 'absolute', width: '100%', bottom: 0, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'black', borderRadius: 10 }}>
+                                        <TouchableHighlight style={{ flex: 1, backgroundColor: '#00c851', alignItems: 'center', borderBottomLeftRadius: 8, borderRightWidth: 1, borderColor: 'white', borderTopWidth: 2, paddingVertical: 4 }} onPress={() => { }}>
                                             <Icon source={"file-document-edit-outline"} color="white" size={25} />
                                         </TouchableHighlight>
-                                        <TouchableHighlight style={{ flex: 1, backgroundColor: '#ff4444', alignItems: 'center', borderBottomRightRadius: 8, borderLeftWidth: 1, borderColor: 'white', borderTopWidth: 2 }} onPress={() => { hRemoveImage(index) }}>
+                                        <TouchableHighlight disabled={images?.length <= 1} style={{ flex: 1, backgroundColor: '#ff4444', alignItems: 'center', borderBottomRightRadius: 8, borderLeftWidth: 1, borderColor: 'white', borderTopWidth: 2, paddingVertical: 4, opacity: images?.length <= 1 ? 0.5 : 1 }} onPress={() => { hRemoveImage(index) }}>
                                             <Icon source={"trash-can-outline"} color="white" size={25} />
                                         </TouchableHighlight>
                                     </View>
@@ -54,7 +62,111 @@ const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
                 />
             </View>
             <View style={{ backgroundColor: '#056fb6', height: 50, width: '100%' }}>
+                <Button mode="contained" onPress={() => { setStep(2) }}>Next</Button>
+            </View>
+        </View>
+    )
+}
 
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const RenderStep3 = ({ images = [] }) => {
+    const dispatch = useDispatch();
+    const [subject, setSubject] = useState('');
+    const [percent, setPercent] = useState(0);
+    const [error, setError] = useState('');
+    const [uploadedLink, setUploadedLink] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const chatData = useSelector(state => state.activeChat);
+    const hSend = async () => {
+        Keyboard.dismiss();
+        if (subject?.trim()?.length == 0) {
+            setError("Subject is required");
+            return;
+        } else {
+            setError('');
+        }
+        if (loading) return;
+
+        setLoading(true);
+        setPercent(0);
+        let mockData =
+            [
+                {
+                    imageUrl: "https://res.cloudinary.com/divzv8wrt/image/upload/v1699467984/x6oldfuacrvsd4xduudn.jpg",
+                    imageName: "x6oldfuacrvsd4xduudn.jpg"
+                },
+                {
+                    imageUrl: "https://res.cloudinary.com/divzv8wrt/image/upload/v1699465642/kkyfeopjtuyrw0on32nx.jpg",
+                    imageName: "kkyfeopjtuyrw0on32nx.jpg"
+                },
+                {
+                    imageUrl: "https://res.cloudinary.com/divzv8wrt/image/upload/v1698469788/tgxepmfp60p5qjiyqxms.jpg",
+                    imageName: "tgxepmfp60p5qjiyqxms.jpg"
+                }
+
+
+            ]
+        let per = 0
+        let uploadedData = [];
+        for (let i = 0; i < mockData.length; i++) {
+            try {
+                // const result = await ImageCompress.compress(images[i]);
+                // const timestamp = Date.now();
+                // let data = new FormData();
+                // data.append('file', {
+                //     name: `my_image_${timestamp}.jpg`,
+                //     type: 'image/jpeg',
+                //     uri: result,
+                // });
+                // data.append('upload_preset', 'NotesChat');
+                // data.append('api_key', '38918525699347');
+                // data.append('timestamp', timestamp);
+                // let imgUpload = await axios.post('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', data);
+                // let imageUrl = imgUpload.data.url;
+                // let imageName = `${imgUpload.data.public_id}.${imgUpload.data.format}`
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                uploadedData = [...uploadedData, { imageUrl: mockData[i].imageUrl, imageName: mockData[i].imageName }]
+                //setUploadedLink((prev) => [...prev, { imageUrl: mockData[i].imageUrl, imageName: mockData[i].imageName }]);
+                per = per + (90 / mockData.length);
+                console.log({ per })
+                setPercent((prev) => (prev + (90 / mockData.length)));
+            } catch (error) {
+                console.log({ error });
+                dispatch(showError("Notes upload failed"));
+                setLoading(false);
+                return;
+            }
+        }
+        setUploadedLink(uploadedData);
+        try {
+            // let { data } = await Api1.post(`/api/message/sendMessage`,
+            //     {
+            //         subject: subject,
+            //         pages: uploadedLink?.map(img => img.imageUrl) || [],
+            //         chatId: chatData?.chatId
+            //     }
+            // );
+            // console.log({ data })
+            console.log({ uploadedLink })
+            setPercent(100);
+        } catch (err) {
+            dispatch(showError("Notes upload failed"));
+            setLoading(false);
+        }
+        setLoading(false);
+    }
+
+    return (
+
+        <View style={{ flex: 1, backgroundColor: '#121b22', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 150, color: 'white' }}>{percent}%</Text>
+            <Text style={{ fontSize: 20, color: 'white', letterSpacing: 10, marginBottom: 20 }}>UPLOADED</Text>
+            <View style={{ width: '70%' }}>
+                <HelperInput value={subject} onChange={(text) => { setSubject(text) }} mode={"outlined"} label={"Subject*"} helperText={error} />
+                <Button loading={loading} style={{ marginTop: 20 }} mode="contained" onPress={hSend}>SEND</Button>
             </View>
         </View>
     )
@@ -139,6 +251,7 @@ const ScannerCamera = () => {
                 </View>
             </>}
             {step == 1 && <RenderStep2 images={images} setImages={setImages} setStep={setStep} imageDimensions={imageDimensions?.height == 0 ? undefined : imageDimensions} hRemoveImage={hRemoveImage} />}
+            {step == 2 && <RenderStep3 images={images} />}
         </View>
     )
 }
