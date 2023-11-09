@@ -13,6 +13,8 @@ import { Image as ImageCompress } from 'react-native-compressor';
 import { useRealm } from "@realm/react";
 import { useNavigation } from "@react-navigation/native";
 import DocumentPicker, { types } from 'react-native-document-picker'
+import ImageCropPicker from "react-native-image-crop-picker";
+import { CropView } from "react-native-image-crop-tools";
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}`
 
@@ -66,8 +68,8 @@ const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
                         }}
                     />
                 </View>
-                <View style={{ backgroundColor: '#056fb6', height: 50, width: '100%' }}>
-                    <Button style={{ width: '50%' }} mode="contained" onPress={() => { setStep(2) }}>Next</Button>
+                <View style={{ backgroundColor: '#151a7b', height: 50, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                    <Button style={{ width: '50%' }} buttonColor="#056fb6" mode="contained" onPress={() => { setStep(2) }}>Next</Button>
                 </View>
             </View>
             <Portal>
@@ -109,7 +111,71 @@ const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
     )
 }
 
-const RenderStep3 = ({ images = [] }) => {
+const RenderStep3 = ({ images = [], setImages, setStep }) => {
+    const cropRef = useRef(null);
+    const [pgNo, setPgNo] = useState(0);
+    const [cropped, setCropped] = useState([])
+    const [loading, setLoading] = useState(false);
+    useEffect(() => {
+
+    }, [])
+
+    const hCrop = () => {
+        if (loading) return;
+        cropRef.current.saveImage(true, 100);
+        setLoading(true)
+    }
+    return (
+        <View style={{ flex: 1, backgroundColor: '#121b22' }}>
+            <View style={{ flex: 0.9, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                <CropView
+                    sourceUrl={images[pgNo]}
+                    ref={cropRef}
+                    style={{ height: '86%', width: '100%', }}
+                    onImageCrop={(res) => {
+                        let tempImages = images;
+                        tempImages[pgNo] = `file://${res.uri}`
+                        setImages([...tempImages]);
+                        setCropped([...cropped, pgNo])
+                        setLoading(false);
+                    }}
+                />
+                <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, alignItems: 'center', position: 'absolute', bottom: 0 }}>
+                    <TouchableHighlight disabled={pgNo == 0} onPress={() => { if (pgNo > 0) setPgNo(pgNo - 1) }} underlayColor={"#056fb6"} style={{ paddingVertical: 7, paddingHorizontal: 10, borderRadius: 5 }}>
+                        <Icon source={"arrow-left"} color={pgNo == 0 ? "#ffffff82" : "white"} size={30} />
+                    </TouchableHighlight>
+                    <Button mode="contained" onPress={() => { setStep(3) }} buttonColor="#056fb6" style={{ borderRadius: 5 }}>Next</Button>
+                    <TouchableHighlight disabled={pgNo >= (images?.length - 1)} onPress={() => { if (pgNo < (images.length - 1)) setPgNo(pgNo + 1) }} underlayColor={"#056fb6"} style={{ paddingVertical: 7, paddingHorizontal: 10, borderRadius: 5 }}>
+                        <Icon source={"arrow-right"} color={pgNo >= (images?.length - 1) ? "#ffffff82" : "white"} size={30} />
+                    </TouchableHighlight>
+                </View>
+            </View>
+            <View style={{ flex: 0.1, backgroundColor: 'red', width: '100%', justifyContent: 'center', alignContent: 'center' }}>
+                <ScrollView style={{ backgroundColor: 'black', width: '100%', }} horizontal={true}>
+                    {images?.map((img, index) => {
+                        return (
+                            <TouchableRipple key={index} rippleColor="red" onPress={() => { setPgNo(index) }} style={styles.imgContainer}>
+                                <>
+                                    <Image style={styles.imgStyle} source={{ uri: img }} width={1} height={1} />
+                                    {cropped?.includes(index) && <TouchableHighlight style={{ position: 'absolute', width: '100%', backgroundColor: 'green', bottom: 0, alignItems: 'center' }}>
+                                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Cropped</Text>
+                                    </TouchableHighlight>}
+                                </>
+                            </TouchableRipple>
+                        )
+                    })}
+                </ScrollView>
+            </View>
+            <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, alignItems: 'center', position: 'absolute', top: 15 }}>
+                <Button mode="contained" onPress={() => { setStep(1) }} buttonColor="#056fb6" style={{ borderRadius: 5 }}>Back</Button>
+                <Button loading={loading} mode="contained" onPress={hCrop} buttonColor="#056fb6" style={{ borderRadius: 5 }}>Crop</Button>
+            </View>
+
+        </View>
+    )
+}
+
+const RenderStep4 = ({ images = [] }) => {
     const dispatch = useDispatch();
     const realm = useRealm();
     const navigation = useNavigation();
@@ -213,9 +279,8 @@ const RenderStep3 = ({ images = [] }) => {
     }
 
     return (
-
         <View style={{ flex: 1, backgroundColor: '#121b22', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 150, color: 'white' }}>{percent}%</Text>
+            <Text style={{ fontSize: 150, color: 'white' }}>{Math.trunc(percent)}%</Text>
             <Text style={{ fontSize: 20, color: 'white', letterSpacing: 10, marginBottom: 20 }}>UPLOADED</Text>
             <View style={{ width: '70%' }}>
                 <HelperInput value={subject} onChange={(text) => { setSubject(text) }} mode={"outlined"} label={"Subject*"} helperText={error} />
@@ -303,7 +368,8 @@ const ScannerCamera = () => {
                 </View>
             </>}
             {step == 1 && <RenderStep2 images={images} setImages={setImages} setStep={setStep} imageDimensions={imageDimensions?.height == 0 ? undefined : imageDimensions} hRemoveImage={hRemoveImage} />}
-            {step == 2 && <RenderStep3 images={images} />}
+            {step == 2 && <RenderStep3 images={images} setImages={setImages} setStep={setStep} />}
+            {step == 3 && <RenderStep4 images={images} />}
         </View>
     )
 }
