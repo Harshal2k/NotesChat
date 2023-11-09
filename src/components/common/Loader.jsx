@@ -6,15 +6,14 @@ import { useSelector } from "react-redux";
 
 const Loader = () => {
     const loading = useSelector(state => state.loading);
-    console.log({ loading })
     return (
         <>
             {
-                loading && <View style={styles.mainContainer}>
+                loading?.show && <View style={styles.mainContainer}>
                     <View style={styles.innerContainer}>
                         <Image style={{ height: 100, width: 100 }} source={require("../../Images/loading.gif")}></Image>
-                        <Text style={{ fontSize: 15, fontWeight: 'bold', marginTop: 10 }}>Almost There</Text>
-                        <Text style={{ fontSize: 15, fontWeight: 'bold' }}>NotesChat is on the Way</Text>
+                        <Text style={{ fontSize: 15, fontWeight: 'bold', marginTop: 10 }}>{loading?.text1 || "Almost There"}</Text>
+                        <Text style={{ fontSize: 15, fontWeight: 'bold' }}>{loading?.text2 || "NotesChat is on the Way"}</Text>
                     </View>
                 </View>
             }

@@ -4,7 +4,7 @@ import Chat from "./Chat";
 import colors from "../../styles/Colours";
 import { Button, Icon, IconButton } from "react-native-paper";
 import { useQuery, useRealm } from "@realm/react";
-import { ChatsModel, MessageModel, Page, UserModel } from "../../Models.js/ChatsModel";
+import { ChatsModel, MessageModel, UserModel } from "../../Models.js/ChatsModel";
 import { Api1 } from "../../API";
 import useDebounce from "../../Hooks/useDebounce";
 import { useNavigation } from "@react-navigation/native";
@@ -17,12 +17,11 @@ const Chats = () => {
     const chats = useQuery(ChatsModel);
     const users = useQuery(UserModel);
     const messages = useQuery(MessageModel);
-    const pages = useQuery(Page)
     const userProfile = useQuery(UserProfile);
     const [search, setSearch] = useState('');
     const [allChats, setAllChats] = useState([]);
     const navigation = useNavigation();
-    console.log({ pages })
+
     const debouncedSearch = useDebounce(search, 400);
 
     useEffect(() => {
@@ -61,7 +60,6 @@ const Chats = () => {
                 }).promise.then((res) => {
                     filePath = `${profileDir}/${data?.picName}`
                 }).catch((error) => { })
-                console.log({ filePath });
                 return {
                     ...data,
                     picPath: filePath
@@ -87,7 +85,6 @@ const Chats = () => {
     }
 
     useEffect(() => {
-        console.log("chatssssssssssss");
         Api1.get('/api/chat/allChats')
             .then(({ data }) => { storeChats(data.chats) })
             .catch((error) => { console.log({ error }) })
@@ -182,9 +179,18 @@ const Chats = () => {
         setSearch(text);
     }
 
+    const hDeleteChat = () => {
+        const chatTodelete = realm.objects('ChatsModel').filtered('chatId = $0', '654d2a351d0baffb39b076fd')[0];
+        if (chatTodelete) {
+            realm.write(() => {
+                realm.delete(chatTodelete);
+            });
+        }
+    }
+
     return (
         <View style={{ flex: 1, backgroundColor: '#121b22' }}>
-            <Button onPress={() => { navigation.navigate("Messages") }}>Click</Button>
+            <Button onPress={hDeleteChat}>Click</Button>
             <View style={styles.searchContainer}>
                 <TextInput style={styles.textInput} value={search} onChangeText={hSearch} placeholder="Search" placeholderTextColor={colors.white} />
                 <Icon source={"magnify"} size={20} color="white" />
@@ -194,7 +200,7 @@ const Chats = () => {
                 renderItem={({ item }) => <Chat chatData={item} />}
                 keyExtractor={item => item?.chatId}
             />
-            <TouchableHighlight style={styles.iconBtnStyle} underlayColor={"#344857"} onPress={() => { console.log("innnnnnnnnnnnn"); navigation.navigate("FindUsers") }}>
+            <TouchableHighlight style={styles.iconBtnStyle} underlayColor={"#344857"} onPress={() => { navigation.navigate("FindUsers") }}>
                 <Icon source={"account-plus"} size={30} color="white" />
             </TouchableHighlight>
         </View>

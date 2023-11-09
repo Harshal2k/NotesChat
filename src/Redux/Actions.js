@@ -1,4 +1,4 @@
-import { HIDE_ERROR, SET_ACTIVE_CHAT, SET_LOADING, SET_USER_DETAILS, SHOW_ERROR, UNSET_LOADING } from "./constants";
+import { HIDE_ERROR, SET_ACTIVE_CHAT, SET_ACTIVE_MESSAGE, SET_LOADING, SET_USER_DETAILS, SHOW_ERROR, UNSET_LOADING } from "./constants";
 import { dispatch } from "./store";
 
 export function set_user_details(user) {
@@ -8,8 +8,8 @@ export function set_user_details(user) {
     }
 }
 
-export function showLoader() {
-    return dispatch({ type: SET_LOADING })
+export function showLoader(data) {
+    return dispatch({ type: SET_LOADING, data: data })
 }
 
 export function hideLoader() {
@@ -28,5 +28,12 @@ export function set_active_chat(chat) {
     return {
         type: SET_ACTIVE_CHAT,
         data: chat
+    }
+}
+
+export function set_active_message(message) {
+    return {
+        type: SET_ACTIVE_MESSAGE,
+        data: message
     }
 }

@@ -22,7 +22,6 @@ const Chat = ({ chatData }) => {
     }
 
     const hChat = () => {
-        console.log({ chatData })
         dispatch(set_active_chat({
             chatId: chatData?.chatId,
             userId: chatData?.chatUser?._id,

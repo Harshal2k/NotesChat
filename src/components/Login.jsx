@@ -165,7 +165,7 @@ const Login = () => {
         if (!commonValidation()) {
             return;
         }
-        showLoader();
+        showLoader({ show: true, text1: '', text2: '', gif: '' });
         Api.post("/api/user/login", {
             email: userData.email,
             password: userData.password

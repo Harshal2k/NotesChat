@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Dimensions, FlatList, Image, Keyboard, ScrollView, StyleSheet, TouchableHighlight, View } from "react-native";
-import { Button, Icon, Text, TextInput, TouchableRipple } from "react-native-paper";
+import { Button, FAB, Icon, Portal, Text, TextInput, TouchableRipple } from "react-native-paper";
 import { Camera, useCameraDevice, useCameraFormat, useCameraPermission } from "react-native-vision-camera";
 import ImageViewerDialog from "./Dialogs/ImageViewerDialog";
 import { AutoDragSortableView, DragSortableView } from "react-native-drag-sort";
@@ -12,9 +12,10 @@ import axios from "axios";
 import { Image as ImageCompress } from 'react-native-compressor';
 import { useRealm } from "@realm/react";
 import { useNavigation } from "@react-navigation/native";
-const testImage = require('../Images/testImage.jpeg');
+import DocumentPicker, { types } from 'react-native-document-picker'
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}`
+
 
 const sHeight = Dimensions.get("window").height;
 const sWidth = Dimensions.get("window").width;
@@ -32,46 +33,80 @@ const ImageThumbnail = ({ imagePath }) => {
 }
 
 const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
+    const [open, setOpen] = useState(false);
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#121b22' }}>
-            <View style={{ flex: 1, paddingHorizontal: 40 }}>
-                <AutoDragSortableView
-                    dataSource={images}
-                    keyExtractor={(item, index) => item}
-                    childrenHeight={220}
-                    childrenWidth={170}
-                    onDataChange={(data) => { setImages(data) }}
-                    scaleStatus="scaleY"
-                    renderItem={(item, index) => {
-                        return (
-                            <TouchableRipple key={index} rippleColor="red" style={{ ...styles.imgContainer, borderRadius: 10 }}>
-                                <>
-                                    <Image resizeMode="contain" style={{ height: 200, width: 150, borderRadius: 10 }} source={{ uri: item }} />
-                                    <View style={{ position: 'absolute', width: '100%', bottom: 0, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'black', borderRadius: 10 }}>
-                                        <TouchableHighlight style={{ flex: 1, backgroundColor: '#00c851', alignItems: 'center', borderBottomLeftRadius: 8, borderRightWidth: 1, borderColor: 'white', borderTopWidth: 2, paddingVertical: 4 }} onPress={() => { }}>
-                                            <Icon source={"file-document-edit-outline"} color="white" size={25} />
-                                        </TouchableHighlight>
-                                        <TouchableHighlight disabled={images?.length <= 1} style={{ flex: 1, backgroundColor: '#ff4444', alignItems: 'center', borderBottomRightRadius: 8, borderLeftWidth: 1, borderColor: 'white', borderTopWidth: 2, paddingVertical: 4, opacity: images?.length <= 1 ? 0.5 : 1 }} onPress={() => { hRemoveImage(index) }}>
-                                            <Icon source={"trash-can-outline"} color="white" size={25} />
-                                        </TouchableHighlight>
-                                    </View>
-                                    <Text style={styles.numberStyle}>{index + 1}</Text>
-                                </>
-                            </TouchableRipple>
-                        )
+        <>
+            <View style={{ flex: 1, backgroundColor: '#121b22' }}>
+                <View style={{ flex: 1, paddingHorizontal: 40 }}>
+                    <AutoDragSortableView
+                        dataSource={images}
+                        keyExtractor={(item, index) => item}
+                        childrenHeight={220}
+                        childrenWidth={170}
+                        onDataChange={(data) => { setImages(data) }}
+                        scaleStatus="scaleY"
+                        renderItem={(item, index) => {
+                            return (
+                                <TouchableRipple key={index} rippleColor="red" style={{ ...styles.imgContainer, borderRadius: 10 }}>
+                                    <>
+                                        <Image resizeMode="contain" style={{ height: 200, width: 150, borderRadius: 10 }} source={{ uri: item }} />
+                                        <View style={{ position: 'absolute', width: '100%', bottom: 0, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'black', borderRadius: 10 }}>
+                                            <TouchableHighlight style={{ flex: 1, backgroundColor: '#00c851', alignItems: 'center', borderBottomLeftRadius: 8, borderRightWidth: 1, borderColor: 'white', borderTopWidth: 2, paddingVertical: 4 }} onPress={() => { }}>
+                                                <Icon source={"file-document-edit-outline"} color="white" size={25} />
+                                            </TouchableHighlight>
+                                            <TouchableHighlight disabled={images?.length <= 1} style={{ flex: 1, backgroundColor: '#ff4444', alignItems: 'center', borderBottomRightRadius: 8, borderLeftWidth: 1, borderColor: 'white', borderTopWidth: 2, paddingVertical: 4, opacity: images?.length <= 1 ? 0.5 : 1 }} onPress={() => { hRemoveImage(index) }}>
+                                                <Icon source={"trash-can-outline"} color="white" size={25} />
+                                            </TouchableHighlight>
+                                        </View>
+                                        <Text style={styles.numberStyle}>{index + 1}</Text>
+                                    </>
+                                </TouchableRipple>
+                            )
+                        }}
+                    />
+                </View>
+                <View style={{ backgroundColor: '#056fb6', height: 50, width: '100%' }}>
+                    <Button style={{ width: '50%' }} mode="contained" onPress={() => { setStep(2) }}>Next</Button>
+                </View>
+            </View>
+            <Portal>
+                <FAB.Group
+                    style={{ paddingBottom: 50 }}
+                    open={open}
+                    visible
+                    icon={open ? 'minus' : 'plus'}
+                    actions={[
+                        {
+                            icon: 'camera',
+                            label: 'Camera',
+                            onPress: () => { setOpen(false); setStep(0) },
+                        },
+                        {
+                            icon: 'image-multiple',
+                            label: 'Gallery',
+                            onPress: () => {
+                                setOpen(false);
+                                DocumentPicker.pick({
+                                    allowMultiSelection: true,
+                                    type: [types.images],
+                                    copyTo: 'cachesDirectory',
+                                }).then((data) => {
+                                    console.log({ data });
+                                    let galleryImages = data?.map(file => file.fileCopyUri) || [];
+                                    setImages([...images, ...galleryImages])
+                                }).catch((err) => { console.log({ err }) })
+                            },
+                        },
+                    ]}
+                    onStateChange={() => { }}
+                    onPress={() => {
+                        setOpen(!open)
                     }}
                 />
-            </View>
-            <View style={{ backgroundColor: '#056fb6', height: 50, width: '100%' }}>
-                <Button mode="contained" onPress={() => { setStep(2) }}>Next</Button>
-            </View>
-        </View>
+            </Portal>
+        </>
     )
-}
-
-function timeout(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 const RenderStep3 = ({ images = [] }) => {

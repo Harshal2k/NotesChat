@@ -1,24 +1,73 @@
 import { useQuery, useRealm } from "@realm/react";
 import React, { useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import { Button, Text } from "react-native-paper";
+import { Button, Text, TouchableRipple } from "react-native-paper";
 import { UserProfile } from "../../Models.js/UserProfile";
 import colors from "../../styles/Colours";
 import { Api1 } from "../../API";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import { MessageModel } from "../../Models.js/ChatsModel";
+import { hideLoader, set_active_message, showLoader } from "../../Redux/Actions";
 const RNFS = require('react-native-fs');
 const NOTESDIR = `${RNFS.ExternalDirectoryPath}/Notes`
 
 const Message = ({ msgData, currentUserId }) => {
-    // console.log({ subject: msgData.subject });
-    // console.log({ pages: JSON.stringify(msgData.pages) });
+    const dispatch = useDispatch();
+    const navigation = useNavigation();
+    const realm = useRealm()
+    const hActiveMsg = async () => {
+        showLoader({ show: true, text1: "Hold tight", text2: 'Preparing your notes' })
+        await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Notes`);
+        for (let i = 0; i < msgData?.pages?.length; i++) {
+            try {
+                const fileExists = await RNFS.exists(`${NOTESDIR}/${msgData?.pages[i]?.picName}`);
+                if (fileExists) {
+                    await realm.write(async () => {
+                        realm.create('Page', {
+                            picUrl: msgData?.pages[i]?.picUrl,
+                            picPath: `file://${NOTESDIR}/${msgData?.pages[i]?.picName}`,
+                            picName: msgData?.pages[i]?.picName
+                        }, true);
+                    });
+                } else {
+                    await RNFS.downloadFile({
+                        fromUrl: msgData?.pages[i]?.picUrl,
+                        toFile: `${NOTESDIR}/${msgData?.pages[i]?.picName}`
+                    }).promise.then(async (res) => {
+                        await realm.write(async () => {
+                            realm.create('Page', {
+                                picUrl: msgData?.pages[i]?.picUrl,
+                                picPath: `file://${NOTESDIR}/${msgData?.pages[i]?.picName}`,
+                                picName: msgData?.pages[i]?.picName
+                            }, true);
+                        });
+                    }).catch((error) => { })
+                }
+            } catch (err) {
+                console.log({ err })
+            }
+        }
+        dispatch(set_active_message({
+            _id: msgData?._id,
+            sender: msgData?.sender,
+            subject: msgData?.subject,
+            pages: JSON.parse(JSON.stringify(msgData?.pages)) || [],
+            chat: msgData?.chat,
+            createdat: msgData?.createdat,
+            updatedat: msgData?.updatedat,
+        }));
+        hideLoader();
+        navigation.navigate("NotesViewer");
+    }
+
     return (
-        <View style={[styles.message, currentUserId === msgData?.sender ? styles.right : styles.left]}>
-            <Text style={styles.text}>{msgData?.subject || ''} ({msgData?.pages?.length} Pages)</Text>
-            <Text style={styles.time}>{msgData?.time || '8:00 pm'}</Text>
-        </View>
+        <TouchableRipple rippleColor={currentUserId === msgData?.sender ? "#056fb6" : "#86A789"} style={[styles.message, currentUserId === msgData?.sender ? styles.right : styles.left]} onPress={hActiveMsg} borderless={true}>
+            <View style={{ borderRadius: 8, padding: 5, backgroundColor: currentUserId === msgData?.sender ? '#056fb6' : '#86A789' }}>
+                <Text style={styles.text}>{msgData?.subject || ''} ({msgData?.pages?.length} Pages)</Text>
+                <Text style={styles.time}>{msgData?.time || '8:00 pm'}</Text>
+            </View>
+        </TouchableRipple >
     )
 }
 
@@ -40,17 +89,17 @@ const Messages = () => {
             .then(async ({ data }) => {
                 for (const msg of data?.message || []) {
                     const pages = [];
-            
+
                     for (const page of msg?.pages || []) {
                         const imgName = page.split("/").pop();
                         const fileExists = await RNFS.exists(`${NOTESDIR}/${imgName}`);
                         pages.push({
                             picUrl: page,
-                            picPath: fileExists ? `${NOTESDIR}/${imgName}` : '',
+                            picPath: fileExists ? `file://${NOTESDIR}/${imgName}` : '',
                             picName: imgName
                         });
                     }
-            
+
                     await realm.write(async () => {
                         realm.create('Message', {
                             _id: msg?._id,
@@ -64,7 +113,7 @@ const Messages = () => {
                     });
 
                 }
-                
+
             })
             .catch((err) => { console.log({ err }) })
     }, [activeChat])
@@ -90,9 +139,8 @@ const Messages = () => {
 
 const styles = StyleSheet.create({
     message: {
-        backgroundColor: '#056fb6',
         width: '45%',
-        marginVertical: 5,
+        marginVertical: 2,
         borderRadius: 8,
         marginLeft: '52%',
         padding: 5
@@ -111,7 +159,6 @@ const styles = StyleSheet.create({
     },
     left: {
         marginLeft: '3%',
-        backgroundColor: '#86A789'
     }
 })
 

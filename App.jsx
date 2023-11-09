@@ -34,6 +34,7 @@ import { ChatsModel, MessageModel, UserModel } from './src/Models.js/ChatsModel'
 import FindUsers from './src/components/FindUsers';
 import Messages from './src/components/Chats/Messages';
 import { useSelector } from 'react-redux';
+import NotesViewer from './src/components/NotesViewer';
 
 
 const Stack = createNativeStackNavigator();
@@ -47,15 +48,7 @@ function AppHeader() {
   const messageModel = useQuery(MessageModel);
   const [showLogout, setShowLogout] = useState(false);
 
-  useEffect(() => {
-    if (userProfile[0]?._id) {
-      console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApp.jsx");
-      console.log(userProfile[0]?._id)
-    }
-  }, [userProfile[0]?._id])
-
   const hLogout = () => {
-    console.log({ userProfile })
     AsyncStorage.setItem('token', '').catch((err) => { })
     realm.write(() => {
       realm.delete(userProfile);
@@ -121,9 +114,20 @@ function App() {
           headerStyle: { backgroundColor: '#151a7b' },
           statusBarColor: '#223bc9',
           headerTintColor: 'white',
-          animation:'fade_from_bottom'
+          animation: 'fade_from_bottom'
         }} />
         <Stack.Screen name="Scanner" component={Scanner} options={{ headerShown: false }} />
+        <Stack.Screen name="NotesViewer" component={NotesViewer}
+          options={{
+            title: "Notes Viewer",
+            animation: 'slide_from_bottom',
+            headerStyle: {
+              backgroundColor: '#151a7b',
+            },
+            headerTintColor: 'white',
+            statusBarColor: '#223bc9'
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

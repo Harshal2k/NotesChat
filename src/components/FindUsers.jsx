@@ -4,10 +4,75 @@ import { ActivityIndicator, Avatar, Icon, Text, TouchableRipple } from "react-na
 import colors from "../styles/Colours";
 import useDebounce from "../Hooks/useDebounce";
 import { Api1 } from "../API";
+import { useQuery, useRealm } from "@realm/react";
+import { UserProfile } from "../Models.js/UserProfile";
+import { hideLoader, showError, showLoader } from "../Redux/Actions";
+import { useDispatch } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
+const RNFS = require('react-native-fs');
+const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
 const User = ({ userData }) => {
+    const realm = useRealm();
+    const userProfile = useQuery(UserProfile);
+    const dispatch = useDispatch();
+    const navigation = useNavigation();
+    const hConnectUser = () => {
+        showLoader({ show: true, text1: 'Hold on!', text2: 'Establishing the connection...' })
+        Api1.post('/api/chat/accessChat',
+            {
+                userId: userData?._id
+            }
+        ).then(async ({ data }) => {
+            await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Profiles`);
+            data?.chat?.map(async (chat) => {
+                let usersCopy = JSON.parse(JSON.stringify(chat?.users));
+                usersCopy = await Promise.all(usersCopy?.map(async (data) => {
+                    let fileExists = await RNFS.exists(`${profileDir}/${data?.picName}`);
+                    if (fileExists) {
+                        return {
+                            ...data,
+                            picPath: `${profileDir}/${data?.picName}`
+                        };
+                    }
+                    let filePath = ''
+                    await RNFS.downloadFile({
+                        fromUrl: data?.pic,
+                        toFile: `${profileDir}/${data?.picName}`
+                    }).promise.then((res) => {
+                        filePath = `${profileDir}/${data?.picName}`
+                    }).catch((error) => { })
+                    return {
+                        ...data,
+                        picPath: filePath
+                    }
+                }));
+                let chatUser = usersCopy?.find(user => user?._id !== userProfile[0]?._id);
+                realm.write(async () => {
+                    realm.create('ChatsModel',
+                        {
+                            chatId: chat?._id,
+                            isGroupChat: chat?.isGroupChat,
+                            groupName: chat?.name,
+                            chatUser: chatUser,
+                            groupAdmin: chat?.groupAdmin,
+                            usersList: usersCopy || [],
+                            createdAt: chat?.createdAt,
+                            latestMessage: chat?.latestMessage,
+                        }
+                        , true)
+                })
+            })
+            hideLoader();
+            navigation.goBack("Home");
+        }).catch((err) => {
+            hideLoader();
+            dispatch(showError("Connection failed"));
+        })
+    }
+
     return (
-        <TouchableRipple style={styles.touchableRipple} rippleColor="#056fb6" onPress={() => { console.log(userData.name) }} borderless={true}>
+        <TouchableRipple style={styles.touchableRipple} rippleColor="#056fb6" onPress={hConnectUser} borderless={true}>
             <View style={styles.item}>
                 <Avatar.Image style={{ backgroundColor: '#080f13' }} size={55} source={userData?.pic ? { uri: userData?.pic } : require('../Images/default_avatar.jpg')} />
                 <View style={styles.txtContainer}>
@@ -22,9 +87,9 @@ const User = ({ userData }) => {
 const renderNoDataFound = () => {
 
     return (
-        <View style={{flexDirection:'column', justifyContent: 'flex-end', alignItems: 'center', height: 280 }}>
-            <Icon source={"account-multiple-remove"} size={80} color="white"/>
-            <Text style={{ color: 'white',fontSize:16 }}>No chat buddies here, keep searching!</Text>
+        <View style={{ flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: 280 }}>
+            <Icon source={"account-multiple-remove"} size={80} color="white" />
+            <Text style={{ color: 'white', fontSize: 16 }}>No chat buddies here, keep searching!</Text>
         </View>
     )
 }
@@ -66,18 +131,16 @@ const FindUsers = () => {
     }
 
     const searchUser = () => {
-        console.log("innnnnnnnnn")
         setLoading(true)
         Keyboard.dismiss();
         Api1.post('/api/user/findUsers', {
             [active?.toLowerCase()]: search
         }).then(({ data }) => {
-            console.log(data.users)
             setUsers(data?.users || [])
         }).catch((err) => { console.log({ err }) })
             .finally(() => { setLoading(false) })
     }
-    console.log({ users });
+
     return (
         <View style={{ flex: 1, backgroundColor: '#121b22', flexDirection: 'column' }}>
             <View style={styles.btnContainer}>

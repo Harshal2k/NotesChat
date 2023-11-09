@@ -15,7 +15,6 @@ export const Api1 = axios.create({
 Api1.interceptors.request.use(
     async (config) => {
         const token = await AsyncStorage.getItem('token'); // Assuming you store the token in localStorage
-        console.log({ token });
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -30,7 +29,7 @@ Api1.interceptors.request.use(
 // Request interceptor for adding the bearer token
 Api.interceptors.request.use(
     async (config) => {
-        showLoader();
+        showLoader({ show: true, text1: '', text2: '', gif: '' });
         return config;
     },
     (error) => {

@@ -3,6 +3,7 @@ import { UserDetailsReducer } from "./UserDetailsReducer";
 import { LoadingReducer } from "./LoadingReducer";
 import { ErrorReducer } from "./ErrorReducer";
 import { ActiveChatReducer } from "./ActiveChatReducer";
+import { ActiveMessageReducer } from "./ActiveMessageReducer";
 
 
 export default combineReducers({
@@ -10,4 +11,5 @@ export default combineReducers({
     loading: LoadingReducer,
     errorDialog: ErrorReducer,
     activeChat: ActiveChatReducer,
+    activeMessage: ActiveMessageReducer
 })
