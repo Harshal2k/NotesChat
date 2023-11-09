@@ -10,6 +10,8 @@ import { showError } from "../Redux/Actions";
 import { Api1 } from "../API";
 import axios from "axios";
 import { Image as ImageCompress } from 'react-native-compressor';
+import { useRealm } from "@realm/react";
+import { useNavigation } from "@react-navigation/native";
 const testImage = require('../Images/testImage.jpeg');
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}`
@@ -74,6 +76,8 @@ function timeout(ms) {
 
 const RenderStep3 = ({ images = [] }) => {
     const dispatch = useDispatch();
+    const realm = useRealm();
+    const navigation = useNavigation();
     const [subject, setSubject] = useState('');
     const [percent, setPercent] = useState(0);
     const [error, setError] = useState('');
@@ -109,30 +113,30 @@ const RenderStep3 = ({ images = [] }) => {
 
 
             ]
-        let per = 0
+
         let uploadedData = [];
-        for (let i = 0; i < mockData.length; i++) {
+        await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Notes`);
+        for (let i = 0; i < images.length; i++) {
             try {
-                // const result = await ImageCompress.compress(images[i]);
-                // const timestamp = Date.now();
-                // let data = new FormData();
-                // data.append('file', {
-                //     name: `my_image_${timestamp}.jpg`,
-                //     type: 'image/jpeg',
-                //     uri: result,
-                // });
-                // data.append('upload_preset', 'NotesChat');
-                // data.append('api_key', '38918525699347');
-                // data.append('timestamp', timestamp);
-                // let imgUpload = await axios.post('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', data);
-                // let imageUrl = imgUpload.data.url;
-                // let imageName = `${imgUpload.data.public_id}.${imgUpload.data.format}`
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                uploadedData = [...uploadedData, { imageUrl: mockData[i].imageUrl, imageName: mockData[i].imageName }]
-                //setUploadedLink((prev) => [...prev, { imageUrl: mockData[i].imageUrl, imageName: mockData[i].imageName }]);
-                per = per + (90 / mockData.length);
-                console.log({ per })
-                setPercent((prev) => (prev + (90 / mockData.length)));
+                const result = await ImageCompress.compress(images[i]);
+                const timestamp = Date.now();
+                let data = new FormData();
+                data.append('file', {
+                    name: `my_image_${timestamp}.jpg`,
+                    type: 'image/jpeg',
+                    uri: result,
+                });
+                data.append('upload_preset', 'NotesChat');
+                data.append('api_key', '38918525699347');
+                data.append('timestamp', timestamp);
+                let imgUpload = await axios.post('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', data);
+                let imageUrl = imgUpload.data.url;
+                let imageName = `${imgUpload.data.public_id}.${imgUpload.data.format}`
+
+                await RNFS.copyFile(result, `${RNFS.ExternalDirectoryPath}/Notes/${imageName}`)
+                uploadedData = [...uploadedData, { picUrl: imageUrl, picName: imageName, picPath: `${RNFS.ExternalDirectoryPath}/Notes/${imageName}` }]
+                //setUploadedLink((prev) => [...prev, { imageUrl: mockData[i].imageUrl, imageName: mockData[i].imageName }]);)
+                setPercent((prev) => (prev + (90 / images.length)));
             } catch (error) {
                 console.log({ error });
                 dispatch(showError("Notes upload failed"));
@@ -142,17 +146,31 @@ const RenderStep3 = ({ images = [] }) => {
         }
         setUploadedLink(uploadedData);
         try {
-            // let { data } = await Api1.post(`/api/message/sendMessage`,
-            //     {
-            //         subject: subject,
-            //         pages: uploadedLink?.map(img => img.imageUrl) || [],
-            //         chatId: chatData?.chatId
-            //     }
-            // );
-            // console.log({ data })
-            console.log({ uploadedLink })
+            let { data } = await Api1.post(`/api/message/sendMessage`,
+                {
+                    subject: subject,
+                    pages: uploadedData?.map(img => img.picUrl) || [],
+                    chatId: chatData?.chatId
+                }
+            );
+
+            realm.write(async () => {
+                realm.create('Message',
+                    {
+                        _id: data?.message?._id,
+                        sender: data?.message?.sender?._id,
+                        subject: data?.message?.subject,
+                        pages: uploadedData || [],
+                        chat: data?.message?.chat?._id,
+                        createdat: data?.message?.createdAt,
+                        updatedat: data?.message?.updatedAt,
+                    }
+                    , true)
+            })
             setPercent(100);
+            navigation.goBack();
         } catch (err) {
+            console.log({ error })
             dispatch(showError("Notes upload failed"));
             setLoading(false);
         }
@@ -192,7 +210,6 @@ const ScannerCamera = () => {
     const capturePhoto = async () => {
         if (camera.current !== null) {
             const photo = await camera.current.takePhoto({ Orientation: 'portrait' });
-            console.log({ photo })
             setImages([...images, `file://${photo.path}`])
         }
     };

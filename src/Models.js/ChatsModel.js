@@ -40,14 +40,12 @@ export class MessageModel extends Realm.Object {
         name: 'Message',
         properties: {
             _id: 'string?',
-            sender: 'User?', // Define sender as a User object
+            sender: 'string?',
             subject: 'string?',
             pages: 'Page[]',
-            content: 'string?',
             chat: 'string?',
             createdat: 'string?',
             updatedat: 'string?',
-            __v: 'int?',
         },
         primaryKey: '_id',
     };
@@ -57,10 +55,10 @@ export class Page extends Realm.Object {
     static schema = {
         name: 'Page',
         properties: {
-            pic: 'string?',
+            picUrl: 'string?',
             picPath: 'string?',
             picName: 'string?'
         },
-        primaryKey: 'pic'
+        primaryKey: 'picUrl'
     }
 }

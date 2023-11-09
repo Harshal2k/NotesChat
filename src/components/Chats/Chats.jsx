@@ -4,7 +4,7 @@ import Chat from "./Chat";
 import colors from "../../styles/Colours";
 import { Button, Icon, IconButton } from "react-native-paper";
 import { useQuery, useRealm } from "@realm/react";
-import { ChatsModel, UserModel } from "../../Models.js/ChatsModel";
+import { ChatsModel, MessageModel, Page, UserModel } from "../../Models.js/ChatsModel";
 import { Api1 } from "../../API";
 import useDebounce from "../../Hooks/useDebounce";
 import { useNavigation } from "@react-navigation/native";
@@ -16,11 +16,13 @@ const Chats = () => {
     const realm = useRealm();
     const chats = useQuery(ChatsModel);
     const users = useQuery(UserModel);
+    const messages = useQuery(MessageModel);
+    const pages = useQuery(Page)
     const userProfile = useQuery(UserProfile);
     const [search, setSearch] = useState('');
     const [allChats, setAllChats] = useState([]);
     const navigation = useNavigation();
-
+    console.log({ pages })
     const debouncedSearch = useDebounce(search, 400);
 
     useEffect(() => {
