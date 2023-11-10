@@ -14,8 +14,11 @@ const NotesRender = ({ item }) => {
     const navigation = useNavigation();
     const realm = useRealm();
 
-    const parsedDate = DateTime.fromISO(item?.createdat);
-    const formattedDate = parsedDate.toFormat("LLL d hh:mm a");
+    let formattedDate = ''
+    try {
+        const parsedDate = DateTime?.fromISO(item?.createdat);
+        formattedDate = parsedDate?.toFormat("LLL d hh:mm a")
+    } catch (err) { }
 
     const hActiveMsg = async () => {
         showLoader({ show: true, text1: "Hold tight", text2: 'Preparing your notes' })

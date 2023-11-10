@@ -13,8 +13,11 @@ const defaultimage = require('../../Images/default_avatar.jpg')
 const Chat = ({ chatData }) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
-    const parsedDate = DateTime?.fromISO(chatData?.updatedAt);
-    const formattedDate = parsedDate?.toFormat("LLL d hh:mm a") || ''
+    let formattedDate = ''
+    try {
+        const parsedDate = DateTime?.fromISO(chatData?.updatedAt);
+        formattedDate = parsedDate?.toFormat("LLL d hh:mm a")
+    } catch (err) { }
     const imageSource = () => {
         if (!chatData?.isGroupChat && chatData?.chatUser?.picPath) {
             return { uri: chatData?.chatUser?.picPath }

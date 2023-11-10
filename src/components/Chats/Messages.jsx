@@ -17,8 +17,11 @@ const Message = ({ msgData, currentUserId, hSelectedMsg, selectedMsg }) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const realm = useRealm();
-    const parsedDate = DateTime?.fromISO(msgData?.createdat);
-    const formattedDate = parsedDate?.toFormat("LLL d hh:mm a") || ''
+    let formattedDate = ''
+    try {
+        const parsedDate = DateTime?.fromISO(msgData?.createdat);
+        formattedDate = parsedDate?.toFormat("LLL d hh:mm a")
+    } catch (err) { }
 
     const hActiveMsg = async () => {
         if (msgData?.updateMessage) {
