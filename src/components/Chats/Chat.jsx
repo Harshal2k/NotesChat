@@ -7,12 +7,14 @@ import { useDispatch } from "react-redux";
 import { set_active_chat } from "../../Redux/Actions";
 import { useNavigation } from "@react-navigation/native";
 import { UserProfile } from "../../Models.js/UserProfile";
+const { DateTime } = require("luxon");
 const defaultimage = require('../../Images/default_avatar.jpg')
 
 const Chat = ({ chatData }) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
-    console.log({ chatUser: chatData?.chatUser?.picPath })
+    const parsedDate = DateTime?.fromISO(chatData?.updatedAt);
+    const formattedDate = parsedDate?.toFormat("LLL d hh:mm a") || ''
     const imageSource = () => {
         if (!chatData?.isGroupChat && chatData?.chatUser?.picPath) {
             return { uri: chatData?.chatUser?.picPath }
@@ -37,7 +39,7 @@ const Chat = ({ chatData }) => {
     return (
         <TouchableRipple style={styles.touchableRipple} rippleColor="#056fb6" onPress={hChat} borderless={true}>
             <View style={styles.item}>
-                <Text style={styles.dateTime}>{chatData?.date || '10:00 pm'}</Text>
+                <Text style={styles.dateTime}>{formattedDate}</Text>
                 <Avatar.Image style={{ backgroundColor: '#080f13' }} size={55} source={imageSource()} />
                 <View style={styles.txtContainer}>
                     <Text style={styles.title}>{!chatData?.isGroupChat ? chatData?.chatUser?.name || '' : chatData?.groupName || ''}</Text>

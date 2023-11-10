@@ -58,6 +58,7 @@ const User = ({ userData }) => {
                             groupAdmin: chat?.groupAdmin,
                             usersList: usersCopy || [],
                             createdAt: chat?.createdAt,
+                            updatedAt: chat?.updatedAt,
                             latestMessage: chat?.latestMessage || null,
                         }
                         , true)

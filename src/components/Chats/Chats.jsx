@@ -14,7 +14,7 @@ const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
 const Chats = () => {
     const realm = useRealm();
-    const chats = useQuery(ChatsModel);
+    const chats2 = useQuery(ChatsModel);
     const users = useQuery(UserModel);
     const messages = useQuery(MessageModel);
     const userProfile = useQuery(UserProfile);
@@ -22,7 +22,7 @@ const Chats = () => {
     const [allChats, setAllChats] = useState([]);
     const [refreshing, setRefreshing] = useState(false)
     const navigation = useNavigation();
-
+    const chats = realm.objects('ChatsModel').sorted('updatedAt', true);
     const debouncedSearch = useDebounce(search, 400);
 
     useEffect(() => {
@@ -39,7 +39,7 @@ const Chats = () => {
             });
             setAllChats(tempChats);
         }
-    }, [chats, debouncedSearch])
+    }, [debouncedSearch])
 
 
     const storeChats = async (chats) => {
@@ -105,6 +105,7 @@ const Chats = () => {
                         groupAdmin: chat?.groupAdmin,
                         usersList: usersCopy || [],
                         createdAt: chat?.createdAt,
+                        updatedAt: chat?.updatedAt,
                         latestMessage: msgData?.length > 0 ? msgData[0] : newMsgData?._id ? newMsgData : null,
                     }
                     , true)

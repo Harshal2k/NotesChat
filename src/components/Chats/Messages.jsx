@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import { MessageModel } from "../../Models.js/ChatsModel";
 import { hideLoader, set_active_message, showLoader } from "../../Redux/Actions";
+const { DateTime } = require("luxon");
 const RNFS = require('react-native-fs');
 const NOTESDIR = `${RNFS.ExternalDirectoryPath}/Notes`
 
@@ -16,6 +17,8 @@ const Message = ({ msgData, currentUserId, hSelectedMsg, selectedMsg }) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const realm = useRealm();
+    const parsedDate = DateTime?.fromISO(msgData?.createdat);
+    const formattedDate = parsedDate?.toFormat("LLL d hh:mm a") || ''
 
     const hActiveMsg = async () => {
         if (msgData?.updateMessage) {
@@ -70,7 +73,7 @@ const Message = ({ msgData, currentUserId, hSelectedMsg, selectedMsg }) => {
         <TouchableRipple rippleColor={currentUserId === msgData?.sender ? "#056fb6" : "#86A789"} style={[styles.message, selectedMsg == msgData?._id && { backgroundColor: currentUserId === msgData?.sender ? "#056fb69e" : "#86A7899e" }, msgData?.updateMessage ? { width: '94%', marginLeft: '3%' } : currentUserId === msgData?.sender ? styles.right : styles.left]} onPress={hActiveMsg} borderless={true}>
             <View style={{ borderRadius: 8, padding: 5, backgroundColor: currentUserId === msgData?.sender ? '#056fb6' : '#86A789' }}>
                 <Text style={{ ...styles.text, textAlign: msgData?.updateMessage ? 'center' : 'left' }}>{msgData?.updateMessage ? msgData?.updateMessageContent || '' : `${msgData?.subject || ''} (${msgData?.pages?.length} Pages)`}</Text>
-                <Text style={styles.time}>{msgData?.time || '8:00 pm'}</Text>
+                <Text style={styles.time}>{formattedDate}</Text>
             </View>
         </TouchableRipple >
     )

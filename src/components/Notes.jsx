@@ -32,7 +32,6 @@ const NotesRender = ({ item }) => {
                         }, true);
                     });
                 } else {
-                    console.log("shitttttttttttttttttttt")
                     await RNFS.downloadFile({
                         fromUrl: item?.pages[i]?.picUrl,
                         toFile: `${NOTESDIR}/${item?.pages[i]?.picName}`
@@ -81,7 +80,7 @@ const NotesRender = ({ item }) => {
 const Notes = () => {
     const realm = useRealm();
     const allNotes = realm.objects('Message').filtered('updateMessage = $0', false).sorted('createdat', true);
-    console.log({ allNotes: allNotes[0] });
+
     return (
         <View style={{ flex: 1, backgroundColor: '#121b22' }}>
             <FlatList

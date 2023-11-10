@@ -11,6 +11,7 @@ export class ChatsModel extends Realm.Object {
             groupAdmin: 'User?',
             usersList: 'User[]',
             createdAt: 'string',
+            updatedAt: 'string',
             latestMessage: 'Message?', // '?' to indicate that it's an optional property
         },
         primaryKey: 'chatId',
