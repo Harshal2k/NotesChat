@@ -12,7 +12,6 @@ const defaultimage = require('../../Images/default_avatar.jpg')
 const Chat = ({ chatData }) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
-
     const imageSource = () => {
         if (!chatData?.isGroupChat && chatData?.chatUser?.picPath) {
             return { uri: chatData?.chatUser?.picPath }
@@ -41,7 +40,7 @@ const Chat = ({ chatData }) => {
                 <Avatar.Image style={{ backgroundColor: '#080f13' }} size={55} source={imageSource()} />
                 <View style={styles.txtContainer}>
                     <Text style={styles.title}>{!chatData?.isGroupChat ? chatData?.chatUser?.name || '' : chatData?.groupName || ''}</Text>
-                    <Text style={styles.message}>hi, Harshal how are you?</Text>
+                    <Text style={styles.message}>{chatData?.latestMessage?.subject ? `${chatData?.latestMessage?.subject} Notes` : chatData?.latestMessage?.updateMessageContent || ''}</Text>
                 </View>
             </View>
         </TouchableRipple>

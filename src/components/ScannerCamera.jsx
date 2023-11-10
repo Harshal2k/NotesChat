@@ -6,15 +6,16 @@ import ImageViewerDialog from "./Dialogs/ImageViewerDialog";
 import { AutoDragSortableView, DragSortableView } from "react-native-drag-sort";
 import HelperInput from "./common/HelperInput";
 import { useDispatch, useSelector } from "react-redux";
-import { showError } from "../Redux/Actions";
+import { set_active_message, showError } from "../Redux/Actions";
 import { Api1 } from "../API";
 import axios from "axios";
 import { Image as ImageCompress } from 'react-native-compressor';
-import { useRealm } from "@realm/react";
-import { useNavigation } from "@react-navigation/native";
+import { useQuery, useRealm } from "@realm/react";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import DocumentPicker, { types } from 'react-native-document-picker'
 import ImageCropPicker from "react-native-image-crop-picker";
 import { CropView } from "react-native-image-crop-tools";
+import { Page } from "../Models.js/ChatsModel";
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}`
 
@@ -94,7 +95,6 @@ const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
                                     type: [types.images],
                                     copyTo: 'cachesDirectory',
                                 }).then((data) => {
-                                    console.log({ data });
                                     let galleryImages = data?.map(file => file.fileCopyUri) || [];
                                     setImages([...images, ...galleryImages])
                                 }).catch((err) => { console.log({ err }) })
@@ -111,7 +111,7 @@ const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
     )
 }
 
-const RenderStep3 = ({ images = [], setImages, setStep }) => {
+const RenderStep3 = ({ images = [], setImages, setStep, editMode }) => {
     const cropRef = useRef(null);
     const [pgNo, setPgNo] = useState(0);
     const [cropped, setCropped] = useState([])
@@ -175,7 +175,7 @@ const RenderStep3 = ({ images = [], setImages, setStep }) => {
     )
 }
 
-const RenderStep4 = ({ images = [] }) => {
+const RenderStep4 = ({ images = [], editMode, messageId }) => {
     const dispatch = useDispatch();
     const realm = useRealm();
     const navigation = useNavigation();
@@ -185,9 +185,11 @@ const RenderStep4 = ({ images = [] }) => {
     const [uploadedLink, setUploadedLink] = useState([]);
     const [loading, setLoading] = useState(false);
     const chatData = useSelector(state => state.activeChat);
+    const message = useSelector(state => state.activeMessage);
+    const page = useQuery(Page);
     const hSend = async () => {
         Keyboard.dismiss();
-        if (subject?.trim()?.length == 0) {
+        if (subject?.trim()?.length == 0 && !editMode) {
             setError("Subject is required");
             return;
         } else {
@@ -197,45 +199,37 @@ const RenderStep4 = ({ images = [] }) => {
 
         setLoading(true);
         setPercent(0);
-        let mockData =
-            [
-                {
-                    imageUrl: "https://res.cloudinary.com/divzv8wrt/image/upload/v1699467984/x6oldfuacrvsd4xduudn.jpg",
-                    imageName: "x6oldfuacrvsd4xduudn.jpg"
-                },
-                {
-                    imageUrl: "https://res.cloudinary.com/divzv8wrt/image/upload/v1699465642/kkyfeopjtuyrw0on32nx.jpg",
-                    imageName: "kkyfeopjtuyrw0on32nx.jpg"
-                },
-                {
-                    imageUrl: "https://res.cloudinary.com/divzv8wrt/image/upload/v1698469788/tgxepmfp60p5qjiyqxms.jpg",
-                    imageName: "tgxepmfp60p5qjiyqxms.jpg"
-                }
-
-
-            ]
 
         let uploadedData = [];
         await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Notes`);
         for (let i = 0; i < images.length; i++) {
             try {
-                const result = await ImageCompress.compress(images[i]);
-                const timestamp = Date.now();
-                let data = new FormData();
-                data.append('file', {
-                    name: `my_image_${timestamp}.jpg`,
-                    type: 'image/jpeg',
-                    uri: result,
-                });
-                data.append('upload_preset', 'NotesChat');
-                data.append('api_key', '38918525699347');
-                data.append('timestamp', timestamp);
-                let imgUpload = await axios.post('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', data);
-                let imageUrl = imgUpload.data.url;
-                let imageName = `${imgUpload.data.public_id}.${imgUpload.data.format}`
+                let existsImgName = images[i]?.split("/")?.pop() || ''
+                const fileExists = await RNFS.exists(`${RNFS.ExternalDirectoryPath}/Notes/${existsImgName}`);
+                if (!fileExists) {
+                    const result = await ImageCompress.compress(images[i]);
+                    const timestamp = Date.now();
+                    let data = new FormData();
+                    data.append('file', {
+                        name: `my_image_${timestamp}.jpg`,
+                        type: 'image/jpeg',
+                        uri: result,
+                    });
+                    data.append('upload_preset', 'NotesChat');
+                    data.append('api_key', '38918525699347');
+                    data.append('timestamp', timestamp);
+                    let imgUpload = await axios.post('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', data);
+                    let imageUrl = imgUpload.data.url;
+                    let imageName = `${imgUpload.data.public_id}.${imgUpload.data.format}`
 
-                await RNFS.copyFile(result, `${RNFS.ExternalDirectoryPath}/Notes/${imageName}`)
-                uploadedData = [...uploadedData, { picUrl: imageUrl, picName: imageName, picPath: `${RNFS.ExternalDirectoryPath}/Notes/${imageName}` }]
+                    await RNFS.copyFile(result, `${RNFS.ExternalDirectoryPath}/Notes/${imageName}`)
+                    uploadedData = [...uploadedData, { picUrl: imageUrl, picName: imageName, picPath: `file://${RNFS.ExternalDirectoryPath}/Notes/${imageName}` }]
+                } else {
+                    const pageData = realm
+                        .objects('Page')
+                        .filtered('picPath = $0', `file://${RNFS.ExternalDirectoryPath}/Notes/${existsImgName}`);
+                    uploadedData = [...uploadedData, { picUrl: pageData[0]?.picUrl, picName: existsImgName, picPath: `file://${RNFS.ExternalDirectoryPath}/Notes/${existsImgName}` }]
+                }
                 //setUploadedLink((prev) => [...prev, { imageUrl: mockData[i].imageUrl, imageName: mockData[i].imageName }]);)
                 setPercent((prev) => (prev + (90 / images.length)));
             } catch (error) {
@@ -247,27 +241,68 @@ const RenderStep4 = ({ images = [] }) => {
         }
         setUploadedLink(uploadedData);
         try {
-            let { data } = await Api1.post(`/api/message/sendMessage`,
-                {
-                    subject: subject,
-                    pages: uploadedData?.map(img => img.picUrl) || [],
-                    chatId: chatData?.chatId
-                }
-            );
 
-            realm.write(async () => {
-                realm.create('Message',
+            if (editMode) {
+                let { data } = await Api1.post(`/api/message/updateMessage`,
                     {
-                        _id: data?.message?._id,
-                        sender: data?.message?.sender?._id,
-                        subject: data?.message?.subject,
-                        pages: uploadedData || [],
-                        chat: data?.message?.chat?._id,
-                        createdat: data?.message?.createdAt,
-                        updatedat: data?.message?.updatedAt,
+                        pages: uploadedData?.map(img => img.picUrl) || [],
+                        messageId: messageId
                     }
-                    , true)
-            })
+                );
+
+                realm.write(async () => {
+                    realm.create('Message',
+                        {
+                            _id: data?.message?._id,
+                            sender: data?.message?.sender?._id,
+                            subject: data?.message?.subject,
+                            pages: uploadedData || [],
+                            chat: data?.message?.chat?._id,
+                            createdat: data?.message?.createdAt,
+                            updatedat: data?.message?.updatedAt,
+                        }
+                        , true)
+
+                    realm.create('Message',
+                        {
+                            _id: data?.newMessage?._id,
+                            sender: data?.newMessage?.sender,
+                            updateMessage: data?.newMessage?.updateMessage,
+                            updatedMsgId: data?.newMessage?.updatedMsgId,
+                            updateMessageContent: data?.newMessage?.updateMessageContent,
+                            pages: [],
+                            chat: data?.newMessage?.chat,
+                            createdat: data?.newMessage?.createdAt,
+                            updatedat: data?.newMessage?.updatedAt,
+                        }
+                        , true)
+                })
+                dispatch(set_active_message({ ...message, pages: uploadedData }))
+
+            } else {
+                let { data } = await Api1.post(`/api/message/sendMessage`,
+                    {
+                        subject: subject,
+                        pages: uploadedData?.map(img => img.picUrl) || [],
+                        chatId: chatData?.chatId
+                    }
+                );
+
+                realm.write(async () => {
+                    realm.create('Message',
+                        {
+                            _id: data?.message?._id,
+                            sender: data?.message?.sender?._id,
+                            subject: data?.message?.subject,
+                            pages: uploadedData || [],
+                            chat: data?.message?.chat?._id,
+                            createdat: data?.message?.createdAt,
+                            updatedat: data?.message?.updatedAt,
+                        }
+                        , true)
+                });
+            }
+
             setPercent(100);
             navigation.goBack();
         } catch (err) {
@@ -283,7 +318,7 @@ const RenderStep4 = ({ images = [] }) => {
             <Text style={{ fontSize: 150, color: 'white' }}>{Math.trunc(percent)}%</Text>
             <Text style={{ fontSize: 20, color: 'white', letterSpacing: 10, marginBottom: 20 }}>UPLOADED</Text>
             <View style={{ width: '70%' }}>
-                <HelperInput value={subject} onChange={(text) => { setSubject(text) }} mode={"outlined"} label={"Subject*"} helperText={error} />
+                {!editMode && <HelperInput value={subject} onChange={(text) => { setSubject(text) }} mode={"outlined"} label={"Subject*"} helperText={error} />}
                 <Button loading={loading} style={{ marginTop: 20 }} mode="contained" onPress={hSend}>SEND</Button>
             </View>
         </View>
@@ -298,8 +333,19 @@ const ScannerCamera = () => {
     const [step, setStep] = useState(0);
     const [imageDimensions, setImageDimension] = useState({ height: 0, width: 0 });
     const [open, setOpen] = useState(false);
+    const [editMode, setEditMode] = useState(false)
     const device = useCameraDevice(camType);
-    const camera = useRef(null)
+    const message = useSelector(state => state.activeMessage);
+    const camera = useRef(null);
+    const route = useRoute();
+
+    useEffect(() => {
+        if (route?.params?.editMode == true) {
+            setEditMode(true);
+            setImages(message?.pages?.map(page => page?.picPath) || []);
+            setStep(1);
+        }
+    }, [route?.params])
 
     useEffect(() => {
         if (!hasPermission) {
@@ -367,9 +413,9 @@ const ScannerCamera = () => {
                     </ScrollView>
                 </View>
             </>}
-            {step == 1 && <RenderStep2 images={images} setImages={setImages} setStep={setStep} imageDimensions={imageDimensions?.height == 0 ? undefined : imageDimensions} hRemoveImage={hRemoveImage} />}
-            {step == 2 && <RenderStep3 images={images} setImages={setImages} setStep={setStep} />}
-            {step == 3 && <RenderStep4 images={images} />}
+            {step == 1 && <RenderStep2 images={images} setImages={setImages} setStep={setStep} editMode={editMode} imageDimensions={imageDimensions?.height == 0 ? undefined : imageDimensions} hRemoveImage={hRemoveImage} />}
+            {step == 2 && <RenderStep3 images={images} setImages={setImages} setStep={setStep} editMode={editMode} />}
+            {step == 3 && <RenderStep4 images={images} editMode={editMode} messageId={message?._id} />}
         </View>
     )
 }

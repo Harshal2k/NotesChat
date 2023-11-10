@@ -7,7 +7,7 @@ import { useQuery, useRealm } from "@realm/react";
 import { ChatsModel, MessageModel, UserModel } from "../../Models.js/ChatsModel";
 import { Api1 } from "../../API";
 import useDebounce from "../../Hooks/useDebounce";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { UserProfile } from "../../Models.js/UserProfile";
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
@@ -67,6 +67,26 @@ const Chats = () => {
             }));
             let chatUser = usersCopy?.find(user => user?._id !== userProfile[0]?._id);
             realm.write(async () => {
+                const msgData = realm
+                    .objects('Message')
+                    .filtered('_id = $0', chat?.latestMessage?._id);
+
+                let newMsgData = {};
+                if (msgData?.length == 0) {
+                    newMsgData = {
+                        _id: chat?.latestMessage?._id,
+                        sender: chat?.latestMessage?.sender?._id || chat?.latestMessage?.sender,
+                        subject: chat?.latestMessage?._id,
+                        pages: chat?.latestMessage?.pages || [],
+                        chat: chat?.latestMessage?._id,
+                        updateMessage: !!chat?.latestMessage?.updateMessage,
+                        updatedMsgId: chat?.latestMessage?.updatedMsgId,
+                        updateMessageContent: chat?.latestMessage?.updateMessageContent,
+                        createdat: chat?.latestMessage?.createdAt,
+                        updatedat: chat?.latestMessage?.updatedAt,
+                    }
+                }
+
                 realm.create('ChatsModel',
                     {
                         chatId: chat?._id,
@@ -76,13 +96,14 @@ const Chats = () => {
                         groupAdmin: chat?.groupAdmin,
                         usersList: usersCopy || [],
                         createdAt: chat?.createdAt,
-                        latestMessage: chat?.latestMessage,
+                        latestMessage: msgData?.length > 0 ? msgData[0] : newMsgData,
                     }
                     , true)
             })
 
         })
     }
+
 
     useEffect(() => {
         Api1.get('/api/chat/allChats')

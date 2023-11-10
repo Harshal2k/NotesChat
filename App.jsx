@@ -81,6 +81,20 @@ function MessageHeader() {
   )
 }
 
+function NotesViewerHeader() {
+  const message = useSelector(state => state.activeMessage);
+  const userProfile = useQuery(UserProfile);
+  const navigation = useNavigation();
+  return (
+    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: -20, justifyContent: 'space-between' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.white, marginLeft: 10 }}>Notes Viewer</Text>
+      {userProfile[0]?._id == message?.sender && <TouchableHighlight underlayColor={"#ff445a24"} onPress={() => { navigation.navigate("Scanner", { editMode: true }) }} style={{ marginRight: '22%', padding: 7, borderRadius: 100 }}>
+        <Icon source={"file-edit"} color="white" size={30} />
+      </TouchableHighlight>}
+    </View>
+  )
+}
+
 const headerOptions = {
   headerBackVisible: false,
   headerBackTitleVisible: false,
@@ -119,13 +133,13 @@ function App() {
         <Stack.Screen name="Scanner" component={Scanner} options={{ headerShown: false }} />
         <Stack.Screen name="NotesViewer" component={NotesViewer}
           options={{
-            title: "Notes Viewer",
             animation: 'slide_from_bottom',
             headerStyle: {
               backgroundColor: '#151a7b',
             },
             headerTintColor: 'white',
-            statusBarColor: '#223bc9'
+            statusBarColor: '#223bc9',
+            headerTitle: (props) => (<NotesViewerHeader {...props} />)
           }}
         />
       </Stack.Navigator>
