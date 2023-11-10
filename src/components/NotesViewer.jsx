@@ -5,7 +5,6 @@ import { Button, Icon, Text } from "react-native-paper";
 import { useSelector } from "react-redux";
 import ImageView from "react-native-image-viewing";
 import PageChangeDialog from "./Dialogs/PageChangeDialog";
-const testImage = require('../Images/testImage.jpeg');
 const sHeight = Dimensions.get("window").height;
 const sWidth = Dimensions.get("window").width;
 

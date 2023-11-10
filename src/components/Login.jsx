@@ -48,10 +48,16 @@ const Login = () => {
 
     useEffect(() => {
         if (userProfile[0]?.token) {
+            console.log("2222222222222222222222")
             navigation.navigate("Home");
+            hideLoader();
             setUserData({ name: '', email: '', password: '', phone: '', otp: '' });
             setHelperTxt({ name: '', email: '', password: '', phone: '' });
             setImageSource("");
+            setLoginMode(true);
+            setOtpMode(false);
+            setImageMode(false);
+            setCameraMode(false);
         }
     }, [userProfile])
 
@@ -60,35 +66,6 @@ const Login = () => {
         setHelperTxt({ name: '', email: '', password: '', phone: '' });
         setImageSource("")
     }, [loginMode])
-
-
-    useEffect(() => {
-        // if (imageSource) {
-        //     const imageUri = `file://${imageSource}`;
-        //     const timestamp = Date.now();
-        //     let data = new FormData();
-        //     data.append('file', {
-        //         name: `my_image_${timestamp}.jpg`,
-        //         type: 'image/jpeg',
-        //         uri: imageUri,
-        //     });
-        //     data.append('upload_preset', 'NotesChat');
-        //     data.append('api_key', '389185256993476');
-        //     data.append('timestamp', timestamp);
-
-        //     fetch('https://api.cloudinary.com/v1_1/divzv8wrt/image/upload', {
-        //         method: 'POST',
-        //         body: data,
-        //     })
-        //         .then((response) => response.json())
-        //         .then((responseJson) => {
-        //             console.log('Image uploaded to Cloudinary:', responseJson);
-        //         })
-        //         .catch((error) => {
-        //             console.error('Error uploading image to Cloudinary:', error);
-        //         });
-        // }
-    }, [imageSource]);
 
     const hChange = (name, value) => {
         if (value[0] === ' ') {
@@ -231,27 +208,27 @@ const Login = () => {
             return;
         }
         setOtpMode(true);
-        // Api.post("/api/user/sendOtp",
-        //     {
-        //         email: userData.email
-        //     }
-        // ).then(() => {
-        //     setOtpMode(true);
-        // }).catch((error) => {
-        //     if (error?.message) {
-        //         dispatch(showError(error?.message));
-        //     } else {
-        //         dispatch(showError("Something went wrong!"));
-        //     }
-        // })
+        Api.post("/api/user/sendOtp",
+            {
+                email: userData.email
+            }
+        ).then(() => {
+            setOtpMode(true);
+        }).catch((error) => {
+            if (error?.message) {
+                dispatch(showError(error?.message));
+            } else {
+                dispatch(showError("Something went wrong!"));
+            }
+        })
     }
 
     const hSignIn = async () => {
+        Keyboard.dismiss();
         let imageUrl = '';
         let imageName = '';
-
+        showLoader();
         if (imageSource) {
-            showLoader();
             try {
                 const timestamp = Date.now();
                 let data = new FormData();
@@ -267,6 +244,7 @@ const Login = () => {
                 imageUrl = imgUpload.data.url;
                 imageName = `${imgUpload.data.public_id}.${imgUpload.data.format}`
             } catch (error) {
+                console.log("0000000000000000");
                 hideLoader();
                 dispatch(showError("Profile picture upload failed"));
                 setImageSource("");
@@ -291,6 +269,8 @@ const Login = () => {
                 createRealmUserProfile(null, data);
             });
         }).catch((error) => {
+            console.log("11111111111111111111");
+            hideLoader();
             if (error?.message) {
                 dispatch(showError(error?.message));
             } else {
@@ -332,7 +312,7 @@ const Login = () => {
                     :
                     <View style={styles.mainContainer}>
                         {loginMode ?
-                            <View style={styles.fieldContainers}>
+                            <View style={{ ...styles.fieldContainers, marginTop: 100 }}>
                                 <HelperInput style={styles.inputStyle} mode={"outlined"} label={"Email"} value={userData?.email || ''} helperText={helperTxt.email} onChange={(text) => { hChange("email", text) }} />
                                 {/* <TextInput style={styles.inputStyle} mode="outlined" label={"Email"} value={userData?.email || ''} onChangeText={(text) => { hChange("email", text) }} /> */}
                                 <HelperInput style={styles.inputStyle} mode={"outlined"} label={"Password"} value={userData?.password || ''} helperText={helperTxt.password} onChangeText={(text) => { hChange("password", text) }} secureTextEntry={showPass} right={<TextInput.Icon onPress={() => setShowPass(!showPass)} icon="eye" />} />
@@ -347,6 +327,7 @@ const Login = () => {
                                         SIGN IN
                                     </Button>
                                 </View>
+                                <Image resizeMode="contain" source={require("../Images/NotesChatLogo.png")} style={{ width: 200, height: 200, position: 'absolute', top: -230 }} />
                             </View>
                             :
                             !otpMode ?
@@ -405,7 +386,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         height: '100%',
-        backgroundColor: colors.primary
+        backgroundColor: '#121b22'
     },
     fieldContainers: {
         width: '80%',

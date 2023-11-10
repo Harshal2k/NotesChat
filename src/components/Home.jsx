@@ -16,10 +16,19 @@ const SecondRoute = () => (
     <View style={{ flex: 1, backgroundColor: '#121b22' }} />
 );
 
-const renderScene = SceneMap({
+const renderScene2 = SceneMap({
     first: Chats,
     second: Notes,
 });
+
+const renderScene = ({ route, jumpTo }) => {
+    switch (route.key) {
+      case 'first':
+        return <Chats />;
+      case 'second':
+        return <Notes />;
+    }
+  };
 
 const renderTabBar = props => (
     <TabBar

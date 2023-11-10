@@ -12,6 +12,7 @@ const defaultimage = require('../../Images/default_avatar.jpg')
 const Chat = ({ chatData }) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
+    console.log({ chatUser: chatData?.chatUser?.picPath })
     const imageSource = () => {
         if (!chatData?.isGroupChat && chatData?.chatUser?.picPath) {
             return { uri: chatData?.chatUser?.picPath }

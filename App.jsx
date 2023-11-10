@@ -11,7 +11,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { ActivityIndicator, Avatar, Icon, MD2Colors } from 'react-native-paper';
+import { ActivityIndicator, Avatar, Icon, IconButton, MD2Colors, Menu } from 'react-native-paper';
 
 import {
   Colors,
@@ -35,6 +35,8 @@ import FindUsers from './src/components/FindUsers';
 import Messages from './src/components/Chats/Messages';
 import { useSelector } from 'react-redux';
 import NotesViewer from './src/components/NotesViewer';
+import Account from './src/components/Account';
+import AboutUs from './src/components/AboutUs';
 
 
 const Stack = createNativeStackNavigator();
@@ -47,6 +49,10 @@ function AppHeader() {
   const userModel = useQuery(UserModel);
   const messageModel = useQuery(MessageModel);
   const [showLogout, setShowLogout] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  const openMenu = () => setVisible(true);
+  const closeMenu = () => setVisible(false);
 
   const hLogout = () => {
     AsyncStorage.setItem('token', '').catch((err) => { })
@@ -62,9 +68,17 @@ function AppHeader() {
   return (
     <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
       <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.white }}>Noteschat</Text>
-      <TouchableHighlight underlayColor={"#ff445a24"} onPress={setShowLogout} style={{ marginRight: 40, padding: 7, borderRadius: 100 }}>
-        <Icon source={"power"} color="#FF445A" size={30} />
-      </TouchableHighlight>
+      <Menu
+        contentStyle={{ backgroundColor: '#121b22' }}
+        anchorPosition='bottom'
+        visible={visible}
+        onDismiss={closeMenu}
+        anchor={<IconButton icon="dots-vertical" iconColor='white' style={{ marginRight: 30 }} onPress={openMenu} />}
+      >
+        <Menu.Item titleStyle={{ color: 'white' }} leadingIcon={() => <Icon source={"card-account-details"} color='white' size={22} />} onPress={() => { closeMenu(); navigation.navigate("Account") }} title="Account" />
+        <Menu.Item titleStyle={{ color: 'white' }} leadingIcon={() => <Icon source={"information-outline"} color='white' size={22} />} onPress={() => { closeMenu(); navigation.navigate("AboutUs") }} title="About Us" />
+        <Menu.Item titleStyle={{ color: 'white' }} leadingIcon={() => <Icon source={"power"} color='white' size={22} />} onPress={() => { closeMenu(); setShowLogout(true) }} title="Logout" />
+      </Menu>
       <ActionDialog show={showLogout} icon={"power"} title='Logout?' desc='Are you sure you want to logout?' onYes={hLogout} onNo={setShowLogout} />
     </View>
   )
@@ -142,6 +156,24 @@ function App() {
             headerTitle: (props) => (<NotesViewerHeader {...props} />)
           }}
         />
+        <Stack.Screen name="Account" options={{
+          title: "Account",
+          animation: 'fade_from_bottom',
+          headerStyle: {
+            backgroundColor: '#151a7b',
+          },
+          headerTintColor: 'white',
+          statusBarColor: '#223bc9'
+        }} component={Account} />
+        <Stack.Screen name="AboutUs" options={{
+          title: "About Us",
+          animation: 'fade_from_bottom',
+          headerStyle: {
+            backgroundColor: '#151a7b',
+          },
+          headerTintColor: 'white',
+          statusBarColor: '#223bc9'
+        }} component={AboutUs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
