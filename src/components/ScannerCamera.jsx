@@ -69,7 +69,7 @@ const RenderStep2 = ({ images, setImages, setStep, hRemoveImage, }) => {
                     />
                 </View>
                 <View style={{ backgroundColor: '#151a7b', height: 50, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
-                    <Button style={{ width: '50%' }} buttonColor="#056fb6" mode="contained" onPress={() => { setStep(2) }}>Next</Button>
+                    <Button disabled={images?.length == 0} style={{ width: '50%' }} buttonColor="#056fb6" mode="contained" onPress={() => { setStep(2) }}>Next</Button>
                 </View>
             </View>
             <Portal>

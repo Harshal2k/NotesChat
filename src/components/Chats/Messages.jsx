@@ -12,11 +12,16 @@ import { hideLoader, set_active_message, showLoader } from "../../Redux/Actions"
 const RNFS = require('react-native-fs');
 const NOTESDIR = `${RNFS.ExternalDirectoryPath}/Notes`
 
-const Message = ({ msgData, currentUserId }) => {
+const Message = ({ msgData, currentUserId, hSelectedMsg, selectedMsg }) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
-    const realm = useRealm()
+    const realm = useRealm();
+
     const hActiveMsg = async () => {
+        if (msgData?.updateMessage) {
+            hSelectedMsg(msgData?.updatedMsgId);
+            return;
+        }
         showLoader({ show: true, text1: "Hold tight", text2: 'Preparing your notes' })
         await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Notes`);
         for (let i = 0; i < msgData?.pages?.length; i++) {
@@ -62,9 +67,9 @@ const Message = ({ msgData, currentUserId }) => {
     }
 
     return (
-        <TouchableRipple rippleColor={currentUserId === msgData?.sender ? "#056fb6" : "#86A789"} style={[styles.message, currentUserId === msgData?.sender ? styles.right : styles.left]} onPress={hActiveMsg} borderless={true}>
+        <TouchableRipple rippleColor={currentUserId === msgData?.sender ? "#056fb6" : "#86A789"} style={[styles.message, selectedMsg == msgData?._id && { backgroundColor: currentUserId === msgData?.sender ? "#056fb69e" : "#86A7899e" }, msgData?.updateMessage ? { width: '94%', marginLeft: '3%' } : currentUserId === msgData?.sender ? styles.right : styles.left]} onPress={hActiveMsg} borderless={true}>
             <View style={{ borderRadius: 8, padding: 5, backgroundColor: currentUserId === msgData?.sender ? '#056fb6' : '#86A789' }}>
-                <Text style={styles.text}>{msgData?.subject || ''} ({msgData?.pages?.length} Pages)</Text>
+                <Text style={{ ...styles.text, textAlign: msgData?.updateMessage ? 'center' : 'left' }}>{msgData?.updateMessage ? msgData?.updateMessageContent || '' : `${msgData?.subject || ''} (${msgData?.pages?.length} Pages)`}</Text>
                 <Text style={styles.time}>{msgData?.time || '8:00 pm'}</Text>
             </View>
         </TouchableRipple >
@@ -78,6 +83,7 @@ const Messages = () => {
     const messages = useQuery(MessageModel);
     const listRef = useRef(null);
     const [scrolled, setScrolled] = useState(false);
+    const [selectedMsg, setSelectedMsg] = useState('');
     const activeChat = useSelector(state => state.activeChat);
     const messagesData = realm
         .objects('Message')
@@ -107,6 +113,9 @@ const Messages = () => {
                             subject: msg?.subject,
                             pages: pages || [],
                             chat: msg?.chat?._id,
+                            updateMessage: !!msg?.updateMessage,
+                            updatedMsgId: msg?.updatedMsgId || '',
+                            updateMessageContent: msg?.updateMessageContent || '',
                             createdat: msg?.createdAt,
                             updatedat: msg?.updatedAt,
                         }, true);
@@ -118,12 +127,24 @@ const Messages = () => {
             .catch((err) => { console.log({ err }) })
     }, [activeChat])
 
+    const hSelectedMsg = (msgId) => {
+        let msgIndex = messagesData?.findIndex(msg => msg?._id == msgId);
+        listRef?.current?.scrollToIndex({
+            animated: true,
+            index: msgIndex
+        })
+        setSelectedMsg(msgId);
+        setTimeout(() => {
+            setSelectedMsg('');
+        }, 3000)
+    }
+
     return (
         <View style={{ flex: 1, backgroundColor: '#121b22' }}>
             <FlatList
                 ref={listRef}
-                data={messagesData || []}
-                renderItem={({ item }) => <Message msgData={item} currentUserId={userProfile[0]?._id} />}
+                data={[...messagesData] || []}
+                renderItem={({ item }) => <Message msgData={item} currentUserId={userProfile[0]?._id} selectedMsg={selectedMsg} hSelectedMsg={hSelectedMsg} />}
                 keyExtractor={item => item?._id}
                 onScrollEndDrag={() => { if (!scrolled) setScrolled(true) }}
                 onContentSizeChange={() => {
@@ -143,7 +164,7 @@ const styles = StyleSheet.create({
         marginVertical: 2,
         borderRadius: 8,
         marginLeft: '52%',
-        padding: 5
+        padding: 5,
     },
     text: {
         color: colors.white,
