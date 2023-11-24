@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, Image, RefreshControl, StyleSheet, TextInput, TouchableHighlight, View } from "react-native";
+import { Alert, FlatList, Image, RefreshControl, StyleSheet, TextInput, TouchableHighlight, View } from "react-native";
 import Chat from "./Chat";
 import colors from "../../styles/Colours";
 import { Button, Icon, IconButton } from "react-native-paper";
@@ -11,6 +11,10 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { UserProfile } from "../../Models.js/UserProfile";
 const RNFS = require('react-native-fs');
 const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
+import io from 'socket.io-client';
+import { useNetInfo } from "@react-native-community/netinfo";
+const ENDPOINT = "http://192.168.10.15:4000"
+import NetInfo from '@react-native-community/netinfo';
 
 const Chats = () => {
     const realm = useRealm();
@@ -24,6 +28,22 @@ const Chats = () => {
     const navigation = useNavigation();
     const chats = realm.objects('ChatsModel').sorted('updatedAt', true);
     const debouncedSearch = useDebounce(search, 400);
+    const [isConnected, setIsConnected] = useState(true);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener((state) => {
+            setIsConnected(state.isConnected);
+        });
+
+        NetInfo.fetch().then((state) => {
+            setIsConnected(state.isConnected);
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, []);
+
 
     useEffect(() => {
         if (!search) {
@@ -67,6 +87,9 @@ const Chats = () => {
                 }
             }));
             let chatUser = usersCopy?.find(user => user?._id !== userProfile[0]?._id);
+            const chatRealmData = realm
+                .objects('ChatsModel')
+                .filtered('chatId = $0', chat?._id)
             realm.write(async () => {
                 const msgData = realm
                     .objects('Message')
@@ -87,7 +110,7 @@ const Chats = () => {
                         sender: chat?.latestMessage?.sender?._id || chat?.latestMessage?.sender,
                         subject: chat?.latestMessage?.subject,
                         pages: pages || [],
-                        chat: chat?.latestMessage?._id,
+                        chat: chat?._id,
                         updateMessage: !!chat?.latestMessage?.updateMessage,
                         updatedMsgId: chat?.latestMessage?.updatedMsgId,
                         updateMessageContent: chat?.latestMessage?.updateMessageContent,
@@ -95,7 +118,9 @@ const Chats = () => {
                         updatedat: chat?.latestMessage?.updatedAt,
                     }
                 }
-
+                const pendingMessages = msgData?.length == 0 ? Number(chatRealmData[0]?.pendingMessages||0) + 1 : chatRealmData[0]?.pendingMessages||0;
+                console.log({ pendingMessages });
+                console.log({chatData:chatRealmData[0]})
                 realm.create('ChatsModel',
                     {
                         chatId: chat?._id,
@@ -107,6 +132,8 @@ const Chats = () => {
                         createdAt: chat?.createdAt,
                         updatedAt: chat?.updatedAt,
                         latestMessage: msgData?.length > 0 ? msgData[0] : newMsgData?._id ? newMsgData : null,
+                        messageCount: chat?.messageCount || "0",
+                        pendingMessages: String(pendingMessages)
                     }
                     , true)
             })
@@ -122,10 +149,11 @@ const Chats = () => {
             .catch((error) => { console.log({ error }); setRefreshing(false); })
     }
 
-
     useEffect(() => {
-        getChatsData();
-    }, [])
+        if (isConnected) {
+            getChatsData();
+        }
+    }, [isConnected])
 
     const DATA = [
         {
@@ -179,6 +207,7 @@ const Chats = () => {
     const hSearch = (text) => {
         setSearch(text);
     }
+
 
 
     return (

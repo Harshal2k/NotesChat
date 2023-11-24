@@ -11,6 +11,7 @@ import { store } from './src/Redux/store';
 import { RealmProvider } from '@realm/react';
 import { UserProfile } from './src/Models.js/UserProfile';
 import { NotesChatRealmContext } from './src/Models.js';
+import messaging from '@react-native-firebase/messaging';
 
 
 const theme = {
@@ -25,6 +26,9 @@ const theme = {
 
 export default function Main() {
   // const { RealmProvider } = useRealmC;
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('Message handled in the background!', remoteMessage);
+  });
   return (
     <StoreProvider store={store}>
       <PaperProvider theme={theme}>

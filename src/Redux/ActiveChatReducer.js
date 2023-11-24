@@ -13,7 +13,7 @@ let defaultState = {
 export const ActiveChatReducer = (state = defaultState, action) => {
     switch (action.type) {
         case SET_ACTIVE_CHAT:
-            return action.data;
+            return action.data||defaultState;
         default:
             return state;
     }

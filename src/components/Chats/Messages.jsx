@@ -1,14 +1,14 @@
 import { useQuery, useRealm } from "@realm/react";
 import React, { useEffect, useRef, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
-import { Button, Text, TouchableRipple } from "react-native-paper";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Button, Text, TouchableRipple } from "react-native-paper";
 import { UserProfile } from "../../Models.js/UserProfile";
 import colors from "../../styles/Colours";
 import { Api1 } from "../../API";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import { MessageModel } from "../../Models.js/ChatsModel";
-import { hideLoader, set_active_message, showLoader } from "../../Redux/Actions";
+import { hideLoader, set_active_chat, set_active_message, showLoader } from "../../Redux/Actions";
 const { DateTime } = require("luxon");
 const RNFS = require('react-native-fs');
 const NOTESDIR = `${RNFS.ExternalDirectoryPath}/Notes`
@@ -85,34 +85,63 @@ const Message = ({ msgData, currentUserId, hSelectedMsg, selectedMsg }) => {
 const Messages = () => {
     const navigation = useNavigation();
     const realm = useRealm();
+    const dispatch = useDispatch();
     const userProfile = useQuery(UserProfile);
-    const messages = useQuery(MessageModel);
     const listRef = useRef(null);
+    const allMessages = useQuery(MessageModel);
     const [scrolled, setScrolled] = useState(false);
     const [selectedMsg, setSelectedMsg] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
     const activeChat = useSelector(state => state.activeChat);
-    const messagesData = realm
+    const [messagesData, setMessageData] = useState(realm
         .objects('Message')
         .filtered('chat = $0', activeChat?.chatId)
-        .sorted('createdat');
-
+        .sorted('createdat', true));
     useEffect(() => {
+        setMessageData(
+            realm
+                .objects('Message')
+                .filtered('chat = $0', activeChat?.chatId)
+                .sorted('createdat', true)
+        )
+    }, [allMessages]);
+    useEffect(() => {
+        return () => {
+            dispatch(set_active_chat({
+                chatId: '',
+                userId: '',
+                name: '',
+                email: '',
+                pic: '',
+                picname: '',
+                picPath: '',
+            }))
+        };
+    }, [])
+    useEffect(() => {
+        setRefreshing(true);
+        const chatInstance = realm.objectForPrimaryKey('ChatsModel', activeChat?.chatId);
+        if (chatInstance) {
+            realm.write(() => {
+                chatInstance.pendingMessages = '0';
+            });
+        }
         Api1.get(`/api/message/${activeChat?.chatId}`)
             .then(async ({ data }) => {
-                for (const msg of data?.message || []) {
-                    const pages = [];
+                await realm.write(async () => {
+                    for (const msg of data?.message || []) {
+                        const pages = [];
 
-                    for (const page of msg?.pages || []) {
-                        const imgName = page.split("/").pop();
-                        const fileExists = await RNFS.exists(`${NOTESDIR}/${imgName}`);
-                        pages.push({
-                            picUrl: page,
-                            picPath: fileExists ? `file://${NOTESDIR}/${imgName}` : '',
-                            picName: imgName
-                        });
-                    }
+                        for (const page of msg?.pages || []) {
+                            const imgName = page.split("/").pop();
+                            //const fileExists = await RNFS.exists(`${NOTESDIR}/${imgName}`);
+                            pages.push({
+                                picUrl: page,
+                                picPath: '',
+                                picName: imgName
+                            });
+                        }
 
-                    await realm.write(async () => {
                         realm.create('Message', {
                             _id: msg?._id,
                             sender: msg?.sender?._id,
@@ -125,12 +154,13 @@ const Messages = () => {
                             createdat: msg?.createdAt,
                             updatedat: msg?.updatedAt,
                         }, true);
-                    });
 
-                }
+
+                    }
+                });
 
             })
-            .catch((err) => { console.log({ err }) })
+            .catch((err) => { console.log({ err }) }).finally(() => { setRefreshing(false) })
     }, [activeChat])
 
     const hSelectedMsg = (msgId) => {
@@ -146,20 +176,19 @@ const Messages = () => {
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#121b22' }}>
-            <FlatList
-                ref={listRef}
-                data={[...messagesData] || []}
-                renderItem={({ item }) => <Message msgData={item} currentUserId={userProfile[0]?._id} selectedMsg={selectedMsg} hSelectedMsg={hSelectedMsg} />}
-                keyExtractor={item => item?._id}
-                onScrollEndDrag={() => { if (!scrolled) setScrolled(true) }}
-                onContentSizeChange={() => {
-                    if (!scrolled) {
-                        listRef?.current?.scrollToEnd({ animated: false });
-                    }
-                }}
-            />
-            <Button style={{ marginVertical: 10 }} mode="contained" onPress={() => { navigation.navigate("Scanner") }}>Create Notes</Button>
+        <View style={{ flex: 1, backgroundColor: '#121b22', alignItems: 'center' }}>
+            {refreshing && <ActivityIndicator style={styles.loader} animating={refreshing} hidesWhenStopped={true} color={'#056fb6'} size={30} />}
+            <View style={{ maxHeight: '93%', width: '100%', }}>
+                <FlatList
+                    ref={listRef}
+                    inverted={true}
+
+                    data={[...messagesData] || []}
+                    renderItem={({ item }) => <Message msgData={item} currentUserId={userProfile[0]?._id} selectedMsg={selectedMsg} hSelectedMsg={hSelectedMsg} />}
+                    keyExtractor={item => item?._id}
+                />
+            </View>
+            <Button style={{ marginVertical: 10, position: 'absolute', bottom: 0, width: '90%' }} mode="contained" onPress={() => { navigation.navigate("Scanner") }}>Create Notes</Button>
         </View>
     )
 }
@@ -186,6 +215,14 @@ const styles = StyleSheet.create({
     },
     left: {
         marginLeft: '3%',
+    },
+    loader: {
+        position: 'absolute',
+        marginTop: 20,
+        backgroundColor: 'white',
+        zIndex: 100,
+        padding: 5,
+        borderRadius: 100
     }
 })
 

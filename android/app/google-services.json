@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "135268011758",
+    "project_id": "noteschat-a4f63",
+    "storage_bucket": "noteschat-a4f63.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:135268011758:android:708c192249603ecca82dff",
+        "android_client_info": {
+          "package_name": "com.noteschat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApKOEMu-7s0kThu9_eHMqE1jh0IQcJsrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

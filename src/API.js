@@ -1,13 +1,14 @@
 import axios from 'axios';
 import { hideLoader, showLoader } from './Redux/Actions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+const URL = 'https://noteschat-backend-service.onrender.com'
 
 export const Api = axios.create({
-    baseURL: 'http://192.168.10.15:4000',
+    baseURL: URL,
 });
 
 export const Api1 = axios.create({
-    baseURL: 'http://192.168.10.15:4000',
+    baseURL: URL,
 });
 
 

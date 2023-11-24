@@ -1,10 +1,12 @@
-import { useRealm } from "@realm/react";
-import React, { useCallback, useEffect, useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { Divider, Icon, Text, TouchableRipple } from "react-native-paper";
 import { hideLoader, set_active_message, showLoader } from "../Redux/Actions";
 import { useDispatch } from "react-redux";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useQuery, useRealm } from "@realm/react";
+import { MessageModel } from "../Models.js/ChatsModel";
 const { DateTime } = require("luxon");
 const RNFS = require('react-native-fs');
 const NOTESDIR = `${RNFS.ExternalDirectoryPath}/Notes`
@@ -82,8 +84,11 @@ const NotesRender = ({ item }) => {
 
 const Notes = () => {
     const realm = useRealm();
-    const allNotes = realm.objects('Message').filtered('updateMessage = $0', false).sorted('createdat', true);
-
+    const notes = useQuery(MessageModel);
+    const [allNotes, setAllNotes] = useState(realm.objects('Message').filtered('updateMessage = $0', false).sorted('createdat', true));
+    useEffect(() => {
+        setAllNotes(realm.objects('Message').filtered('updateMessage = $0', false).sorted('createdat', true))
+    }, [notes])
     return (
         <View style={{ flex: 1, backgroundColor: '#121b22' }}>
             <FlatList

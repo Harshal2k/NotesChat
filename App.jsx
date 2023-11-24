@@ -2,24 +2,13 @@ import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
+  Alert,
   Text,
   TouchableHighlight,
-  useColorScheme,
   View,
 } from 'react-native';
-import { ActivityIndicator, Avatar, Icon, IconButton, MD2Colors, Menu } from 'react-native-paper';
+import { Avatar, Icon, IconButton, Menu } from 'react-native-paper';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
 import Login from './src/components/Login';
 import Scanner from './src/components/Scanner';
 import Home from './src/components/Home';
@@ -33,36 +22,274 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatsModel, MessageModel, UserModel } from './src/Models.js/ChatsModel';
 import FindUsers from './src/components/FindUsers';
 import Messages from './src/components/Chats/Messages';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import NotesViewer from './src/components/NotesViewer';
 import Account from './src/components/Account';
 import AboutUs from './src/components/AboutUs';
+import io from 'socket.io-client';
+import PushController from './src/components/NotificationController';
+import usePushNotification from './src/Hooks/usePushNotification';
+import NotificationController from './src/components/NotificationController';
+import { Api1 } from './src/API';
+import { showError } from './src/Redux/Actions';
+const ENDPOINT = "https://noteschat-backend-service.onrender.com"
+const RNFS = require('react-native-fs');
+const profileDir = `file://${RNFS.ExternalDirectoryPath}/Profiles`
 
 
 const Stack = createNativeStackNavigator();
 
+let activeChatCopy = {};
+
 function AppHeader() {
   const navigation = useNavigation();
   const realm = useRealm()
+  const dispatch = useDispatch();
   const userProfile = useQuery(UserProfile);
   const chatsModel = useQuery(ChatsModel);
   const userModel = useQuery(UserModel);
   const messageModel = useQuery(MessageModel);
   const [showLogout, setShowLogout] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [inprogress, setInProgress] = useState(false);
+  const activeChat = useSelector(state => state.activeChat);
+
+  useEffect(() => {
+    activeChatCopy = JSON.parse(JSON.stringify(activeChat));
+  }, [activeChat])
+
+  const hUpdateChat = (data) => {
+    const storedMsgs = realm
+      .objects('Message')
+      .filtered('chat = $0', data?.chat?._id)
+    const chatRealmData = realm
+      .objects('ChatsModel')
+      .filtered('chatId = $0', data?.chat?._id)
+
+    const chat = data?.chat;
+
+    let usersCopy = JSON.parse(JSON.stringify(chat?.users));
+    let chatUser = usersCopy?.find(user => user?._id !== userProfile[0]?._id);
+    let pages = data?.pages?.map(page => {
+      return {
+        picUrl: page,
+        picPath: '',
+        picName: page?.split("/")?.pop() || ''
+      }
+    })
+
+    const newMsgData = {
+      _id: chat?.latestMessage,
+      sender: data?.sender?._id,
+      subject: data?.subject,
+      pages: pages || [],
+      chat: chat?._id,
+      updateMessage: !!data?.updateMessage,
+      updatedMsgId: data?.updatedMsgId,
+      updateMessageContent: data?.updateMessageContent,
+      createdat: data?.createdAt,
+      updatedat: data?.updatedAt,
+    }
+    let pendingMessages = "0"
+    if (activeChatCopy?.chatId == chat?._id) {
+      pendingMessages = "0"
+    } else {
+      pendingMessages = Number(chatRealmData[0]?.pendingMessages) + 1;
+    }
+    realm.write(() => {
+      realm.create('ChatsModel',
+        {
+          chatId: chat?._id,
+          isGroupChat: chat?.isGroupChat,
+          groupName: chat?.name,
+          chatUser: chatUser,
+          groupAdmin: chat?.groupAdmin,
+          usersList: usersCopy || [],
+          createdAt: chat?.createdAt,
+          updatedAt: chat?.updatedAt,
+          latestMessage: newMsgData || null,
+          messageCount: chat?.messageCount || "0",
+          pendingMessages: String(pendingMessages)
+        }
+        , true)
+
+    })
+  }
+
+  const hUpdateMessage = (data) => {
+    const chatRealmData = realm
+      .objects('ChatsModel')
+      .filtered('chatId = $0', data?.chat?._id)
+
+    const updatedMessage = realm
+      .objects('Message')
+      .filtered('_id = $0', data?.message?._id)
+
+    const chat = data?.chat;
+    let usersCopy = JSON.parse(JSON.stringify(chat?.users));
+    let chatUser = usersCopy?.find(user => user?._id !== userProfile[0]?._id);
+    let oldPages = updatedMessage[0]?.pages || [];
+
+    let updatedPages = data?.message?.pages?.map(page => {
+      let exists = oldPages?.find(pg => pg.picUrl == page);
+      if (exists) {
+        return exists;
+      }
+      return {
+        picUrl: page,
+        picPath: '',
+        picName: page?.split("/")?.pop() || ''
+      }
+    })
+
+    const oldMessage = {
+      _id: data?.message?._id,
+      sender: data?.message?.sender,
+      subject: data?.message?.subject,
+      pages: updatedPages,
+      chat: data?.message?.chat,
+      updateMessage: !!data?.message?.updateMessage,
+      updatedMsgId: data?.message?.updatedMsgId,
+      updateMessageContent: data?.message?.updateMessageContent,
+      createdat: data?.message?.createdAt,
+      updatedat: data?.message?.updatedAt,
+    }
+
+    const newMsgData = {
+      _id: data?.newMessage?._id,
+      sender: data?.newMessage?.sender,
+      subject: data?.newMessage?.subject,
+      pages: updatedPages,
+      chat: data?.newMessage?.chat,
+      updateMessage: !!data?.newMessage?.updateMessage,
+      updatedMsgId: data?.newMessage?.updatedMsgId,
+      updateMessageContent: data?.newMessage?.updateMessageContent,
+      createdat: data?.newMessage?.createdAt,
+      updatedat: data?.newMessage?.updatedAt,
+    }
+
+
+    let pendingMessages = "0"
+    if (activeChatCopy?.chatId == chat?._id) {
+      pendingMessages = "0"
+    } else {
+      pendingMessages = Number(chatRealmData[0]?.pendingMessages) + 1;
+    }
+
+    realm.write(() => {
+      realm.create('Message', oldMessage, true);
+      realm.create('ChatsModel',
+        {
+          chatId: chat?._id,
+          isGroupChat: chat?.isGroupChat,
+          groupName: chat?.name,
+          chatUser: chatUser,
+          groupAdmin: chat?.groupAdmin,
+          usersList: usersCopy || [],
+          createdAt: chat?.createdAt,
+          updatedAt: chat?.updatedAt,
+          latestMessage: newMsgData || null,
+          messageCount: chat?.messageCount || "0",
+          pendingMessages: String(pendingMessages)
+        }
+        , true)
+
+    })
+  }
+
+  const hCreateChat = async (data) => {
+    await RNFS.mkdir(`${RNFS.ExternalDirectoryPath}/Profiles`);
+    let chat = data?.chat[0];
+    let usersCopy = JSON.parse(JSON.stringify(chat?.users));
+    usersCopy = await Promise.all(usersCopy?.map(async (data) => {
+      let fileExists = await RNFS.exists(`${profileDir}/${data?.picName}`);
+      if (fileExists) {
+        return {
+          ...data,
+          picPath: `${profileDir}/${data?.picName}`
+        };
+      }
+      let filePath = ''
+      await RNFS.downloadFile({
+        fromUrl: data?.pic,
+        toFile: `${profileDir}/${data?.picName}`
+      }).promise.then((res) => {
+        filePath = `${profileDir}/${data?.picName}`
+      }).catch((error) => { })
+      return {
+        ...data,
+        picPath: filePath
+      }
+    }));
+    let chatUser = usersCopy?.find(user => user?._id !== userProfile[0]?._id);
+    const chatRealmData = realm
+      .objects('ChatsModel')
+      .filtered('chatId = $0', chat?._id)
+    realm.write(async () => {
+      realm.create('ChatsModel',
+        {
+          chatId: chat?._id,
+          isGroupChat: chat?.isGroupChat,
+          groupName: chat?.name,
+          chatUser: chatUser,
+          groupAdmin: chat?.groupAdmin,
+          usersList: usersCopy || [],
+          createdAt: chat?.createdAt,
+          updatedAt: chat?.updatedAt,
+          latestMessage: null,
+          messageCount: "0",
+          pendingMessages: "0"
+        }
+        , true)
+    })
+  }
+
+  useEffect(() => {
+    const socket = io(ENDPOINT);
+
+    const handleReconnect = () => {
+      socket.emit("setup", userProfile[0]);
+    };
+
+    socket.emit("setup", userProfile[0]);
+
+    socket.on("updatedChat", hUpdateChat);
+
+    socket.on("updatedMessage", hUpdateMessage);
+
+    socket.on("createChat", hCreateChat);
+
+    socket.on("connect", () => { handleReconnect() });
+
+    return () => {
+      socket.off("updatedChat", hUpdateChat);
+      socket.off("updatedMessage", hUpdateMessage);
+      socket.off("createChat", hCreateChat);
+      socket.off("connect", handleReconnect);
+      socket.disconnect();
+    };
+  }, [])
 
   const openMenu = () => setVisible(true);
   const closeMenu = () => setVisible(false);
 
   const hLogout = () => {
-    AsyncStorage.setItem('token', '').catch((err) => { })
-    realm.write(() => {
-      realm.delete(userProfile);
-      realm.delete(chatsModel);
-      realm.delete(userModel);
-      realm.delete(messageModel);
-      navigation.navigate("Login");
-    });
+    setInProgress(true);
+    Api1.post('/api/user/updateFCM', { userId: userProfile[0]?._id, fcm: '' })
+      .then((data) => {
+        AsyncStorage.setItem('token', '').catch((err) => { })
+        realm.write(() => {
+          realm.delete(userProfile);
+          realm.delete(chatsModel);
+          realm.delete(userModel);
+          realm.delete(messageModel);
+          navigation.navigate("Login");
+        });
+      }).catch((error) => {
+        setShowLogout(false)
+        dispatch(showError("Unable to logout. Please try again"));
+      }).finally(() => { setInProgress(false) })
+
   }
 
   return (
@@ -79,7 +306,7 @@ function AppHeader() {
         <Menu.Item titleStyle={{ color: 'white' }} leadingIcon={() => <Icon source={"information-outline"} color='white' size={22} />} onPress={() => { closeMenu(); navigation.navigate("AboutUs") }} title="About Us" />
         <Menu.Item titleStyle={{ color: 'white' }} leadingIcon={() => <Icon source={"power"} color='white' size={22} />} onPress={() => { closeMenu(); setShowLogout(true) }} title="Logout" />
       </Menu>
-      <ActionDialog show={showLogout} icon={"power"} title='Logout?' desc='Are you sure you want to logout?' onYes={hLogout} onNo={setShowLogout} />
+      <ActionDialog inprogress={inprogress} show={showLogout} icon={"power"} title='Logout?' desc='Are you sure you want to logout?' onYes={hLogout} onNo={setShowLogout} />
     </View>
   )
 }
@@ -109,25 +336,70 @@ function NotesViewerHeader() {
   )
 }
 
-const headerOptions = {
-  headerBackVisible: false,
-  headerBackTitleVisible: false,
-  headerTitle: (props) => (<AppHeader {...props} />),
-  gestureEnabled: false,
-  headerStyle: { backgroundColor: '#151a7b' },
-  statusBarColor: '#223bc9'
-}
+// const headerOptions = {
+//   headerBackVisible: false,
+//   headerBackTitleVisible: false,
+//   headerTitle: (props) => (<AppHeader {...props} />),
+//   gestureEnabled: false,
+//   headerStyle: { backgroundColor: '#151a7b' },
+//   statusBarColor: '#223bc9'
+// }
 
 
 function App() {
   const userProfile = useQuery(UserProfile);
+  const [fcm, setfcm] = useState('');
+
+  useEffect(() => {
+    if (userProfile[0]?._id && fcm?.length > 0) {
+      Api1.post('/api/user/updateFCM', { userId: userProfile[0]?._id, fcm: fcm })
+        .then((data) => {
+        }).catch((error) => { console.log({ error }) })
+    }
+  }, [fcm, userProfile[0]?._id]);
+
+  const {
+    requestUserPermission,
+    getFCMToken,
+    listenToBackgroundNotifications,
+    listenToForegroundNotifications,
+    onNotificationOpenedAppFromBackground,
+    onNotificationOpenedAppFromQuit,
+  } = usePushNotification();
+
+  useEffect(() => {
+    const listenToNotifications = async () => {
+      try {
+        const newFcm = await getFCMToken();
+        setfcm(newFcm);
+        requestUserPermission();
+        onNotificationOpenedAppFromQuit();
+        listenToBackgroundNotifications();
+        listenToForegroundNotifications();
+        onNotificationOpenedAppFromBackground();
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    listenToNotifications();
+  }, []);
+
   return (
     <NavigationContainer>
       <Loader />
       <ErrorDialog />
+      <NotificationController />
       <Stack.Navigator initialRouteName={userProfile[0]?._id ? 'Home' : 'Login'}>
         <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
-        <Stack.Screen name="Home" component={Home} options={headerOptions} />
+        <Stack.Screen name="Home" component={Home} options={{
+          headerBackVisible: false,
+          headerBackTitleVisible: false,
+          headerTitle: (props) => (<AppHeader {...props} />),
+          gestureEnabled: false,
+          headerStyle: { backgroundColor: '#151a7b' },
+          statusBarColor: '#223bc9'
+        }} />
         <Stack.Screen name="FindUsers" options={{
           title: "Find Noteschat Users",
           animation: 'slide_from_bottom',
@@ -142,7 +414,7 @@ function App() {
           headerStyle: { backgroundColor: '#151a7b' },
           statusBarColor: '#223bc9',
           headerTintColor: 'white',
-          animation: 'fade_from_bottom'
+          animation: 'none'
         }} />
         <Stack.Screen name="Scanner" component={Scanner} options={{ headerShown: false }} />
         <Stack.Screen name="NotesViewer" component={NotesViewer}

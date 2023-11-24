@@ -13,6 +13,8 @@ export class ChatsModel extends Realm.Object {
             createdAt: 'string',
             updatedAt: 'string',
             latestMessage: 'Message?', // '?' to indicate that it's an optional property
+            messageCount: { type: 'string', default: '0' },
+            pendingMessages:{type:'string',default:'0'}
         },
         primaryKey: 'chatId',
     };

@@ -305,7 +305,7 @@ const Login = () => {
 
     return (
         <>
-            <ImageUploadDialog show={imageMode} hCamera={() => { setCameraMode(true); setImageMode(false) }} hGallery={hGallery} />
+            <ImageUploadDialog show={imageMode} hCamera={() => { setCameraMode(true); setImageMode(false) }} hGallery={hGallery} hClose={()=>{setImageMode(false)}} />
             {
                 cameraMode ?
                     <CameraViewer setCameraMode={() => { setImageMode(false); setCameraMode(false) }} setImageSource={setImageSource}></CameraViewer >

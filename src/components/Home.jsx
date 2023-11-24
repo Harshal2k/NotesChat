@@ -1,12 +1,9 @@
-import { useNavigation, useNavigationState } from "@react-navigation/native";
-import { UserProfile } from "../Models.js/UserProfile";
-import { useEffect, useState } from "react";
-import { useQuery, useRealm } from "@realm/react";
 import { SceneMap, TabBar, TabView } from "react-native-tab-view";
 import { PermissionsAndroid, View, useWindowDimensions } from "react-native";
 import Chats from "./Chats/Chats";
 import Notes from "./Notes";
 import { Icon, Text } from "react-native-paper";
+import { useState } from "react";
 
 const FirstRoute = () => (
     <View style={{ flex: 1, backgroundColor: '#121b22' }} />
@@ -50,12 +47,6 @@ const renderTabBar = props => (
 );
 
 const Home = () => {
-    const navigation = useNavigation();
-    const navigations = useNavigationState(state => state.routes);
-
-    const userProfile = useQuery(UserProfile)
-    const realm = useRealm()
-
     const layout = useWindowDimensions();
 
     const [index, setIndex] = useState(0);
@@ -90,7 +81,7 @@ const Home = () => {
         <TabView
             renderTabBar={renderTabBar}
             navigationState={{ index, routes }}
-            renderScene={renderScene}
+            renderScene={renderScene2}
             onIndexChange={setIndex}
             initialLayout={{ width: layout.width }}
         />
